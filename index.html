@@ -385,6 +385,15 @@ function emps(){ return ((S.setup || {}).employees || []); }
 function emp(name){ return emps().filter(function(e){ return e.name === name; })[0]; }
 function active(on){ return emps().filter(function(e){ return !e.left || e.left >= on; }); }
 function hoursOf(r){ return DBPay.rowMinutes(r) / 60; }
+// the overtime window must lie inside the shift (an iPhone 12-hour clock makes 13:30 easy to type as 01:30)
+function otInside(r){
+  var s = mins(r.start), e = mins(r.end), f = mins(r.ot_from), t = mins(r.ot_to);
+  if (e <= s) e += 1440;
+  if (f < s) f += 1440;
+  if (t <= f) t += 1440;
+  return f >= s && t <= e;
+}
+function mins(x){ var p = String(x).split(':'); return parseInt(p[0], 10) * 60 + parseInt(p[1], 10); }
 function otManual(r){ if (!r.ot_from || !r.ot_to) return ''; var m = DBPay.rowMinutes({start:r.ot_from, end:r.ot_to}); return Math.round(m / 60 * 100) / 100; }
 function calcRow(r){ return {date:r.date, start:r.start, end:r.end, 'break':Number(r['break'] || 0), rate:Number(r.rate || 0), stat:!!r.stat,
   ot_manual: r.use_manual ? otManual(r) : '', bonus:Number(r.bonus || 0)}; }
@@ -479,6 +488,8 @@ function readForm(who){
   if (!r.date || !r.start || !r.end) throw new Error(T('日期、开工、收工都要填','date, start and end are needed'));
   if (who === 'boss' && !(r.rate > 0)) throw new Error(T('时薪要填','the rate is needed'));
   if (!!r.ot_from !== !!r.ot_to) throw new Error(T('加班要有「从」和「到」','overtime needs both from and to'));
+  if (r.ot_from && !otInside(r)) throw new Error(T('加班时间 ' + r.ot_from + '–' + r.ot_to + ' 不在这一班 ' + r.start + '–' + r.end + ' 里面（注意上午 / 下午）',
+    'overtime ' + r.ot_from + '–' + r.ot_to + ' is not inside the shift ' + r.start + '–' + r.end + ' (check AM / PM)'));
   return r;
 }
 function dayCards(list, who){
