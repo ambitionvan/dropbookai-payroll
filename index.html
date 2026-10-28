@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Payroll">
+<title>DropBookAI Payroll</title>
+<!-- DropBookAI client payroll app (user 2026-10-26). Built by engine\bankpush_payroll_kit.py from this template:
+     the calculation (payroll_calc.js) and the CRA tables are put in at the markers. No network: every byte is in
+     this file; what the user types stays in this browser (localStorage) until they export a file. -->
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2430;--mut:#667085;--line:#e3e6eb;--acc:#1f6f5c;--acc2:#e8f3f0;--warn:#b45309;--wbg:#fff7e6;--bad:#b91c1c;--bbg:#fdecec;--ok:#15803d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111418;--card:#1a1f26;--ink:#e6e9ee;--mut:#98a2b3;--line:#2b323c;--acc:#5cc2a6;--acc2:#16302a;--warn:#f0b35a;--wbg:#2c2414;--bad:#f87171;--bbg:#2e1717;--ok:#4ade80}}
+:root[data-theme="dark"]{--bg:#111418;--card:#1a1f26;--ink:#e6e9ee;--mut:#98a2b3;--line:#2b323c;--acc:#5cc2a6;--acc2:#16302a;--warn:#f0b35a;--wbg:#2c2414;--bad:#f87171;--bbg:#2e1717;--ok:#4ade80}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px calc(10px) 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+header h1{font-size:16px;margin:0;flex:1;min-width:150px}
+header small{color:var(--mut);font-weight:400}
+nav{display:flex;gap:6px;overflow-x:auto;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+nav button{white-space:nowrap}
+main{max-width:980px;margin:0 auto;padding:14px 16px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+h2{font-size:16px;margin:0 0 10px}
+button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:8px 12px;cursor:pointer;min-height:38px}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+button.on{background:var(--acc2);border-color:var(--acc);color:var(--acc)}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 8px;min-height:38px;max-width:100%}
+input[type=checkbox]{min-height:auto;width:20px;height:20px}
+label{display:inline-flex;flex-direction:column;gap:3px;font-size:13px;color:var(--mut);margin:0 8px 8px 0}
+.row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:0}
+.mut{color:var(--mut)} .sm{font-size:13px}
+.warn{background:var(--wbg);color:var(--warn);border-radius:8px;padding:8px 10px;margin:8px 0;font-size:14px}
+.bad{background:var(--bbg);color:var(--bad);border-radius:8px;padding:8px 10px;margin:8px 0;font-size:14px}
+.okt{color:var(--ok)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border-bottom:1px solid var(--line);padding:6px 6px;text-align:left;vertical-align:top;white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.tot td{font-weight:600;border-top:2px solid var(--line)}
+.pill{display:inline-block;border-radius:99px;padding:1px 8px;font-size:12px;border:1px solid var(--line)}
+.pill.p{color:var(--warn);border-color:var(--warn)} .pill.a{color:var(--ok);border-color:var(--ok)}
+.day{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
+.day .h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);max-width:560px;width:calc(100% - 32px)}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+.foot{color:var(--mut);font-size:12px;text-align:center;padding:10px}
+</style>
+</head>
+<body>
+<header><h1>DropBookAI Payroll <small id="co"></small></h1>
+  <button id="lang" title="中文 / English">EN</button></header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<div class="foot" id="foot"></div>
+<dialog id="dlg"><form method="dialog" id="dlgf"></form></dialog>
+<script>
+/* payroll_calc.js -- the payroll calculation of the DropBookAI client payroll app (user 2026-10-26).
+   A line-by-line copy of engine\bankpush_payroll.py: compute (CRA T4127 Option 1, BC, CPP / CPP2 / EI, the bonus
+   method checked on PDOC 2026-10-27) and timesheet (BC overtime). The selftest runs both on the same cases and
+   every cent must agree -- change one, change the other. Same order of arithmetic as the Python on purpose. */
+(function (root) {
+  'use strict';
+
+  // Python r2: Decimal(str(x)).quantize(0.01, ROUND_HALF_UP) -- on the shortest decimal form of the number
+  function r2(x) {
+    x = Number(x);
+    var s = String(Math.abs(x)), sg = x < 0 ? -1 : 1;
+    if (s.indexOf('e') >= 0) return sg * Math.round(Math.abs(x) * 100) / 100;
+    // digit by digit, as Decimal does ('3530.1349999999998' must not become 3530.14)
+    var p = s.split('.'), fr = ((p[1] || '') + '000');
+    var cents = Number(p[0]) * 100 + Number(fr.slice(0, 2)) + (fr.charAt(2) >= '5' ? 1 : 0);
+    return sg * cents / 100;
+  }
+  function num(v) {
+    var n = parseFloat(String(v === undefined || v === null ? '' : v).replace(/,/g, '').replace(/\$/g, ''));
+    return isFinite(n) && n > 0 ? n : 0;
+  }
+  function f(v) { return Number(v || 0); }
+  // Python round(): halves to the even number
+  function pyRound(x) { var r = Math.round(x); return (Math.abs(x % 1) === 0.5 && r % 2 !== 0) ? r - 1 : r; }
+
+  function tableFor(tables, day) {
+    var eds = tables.editions.slice().sort(function (a, b) { return a.effective < b.effective ? -1 : 1; });
+    var hit = eds[0];
+    eds.forEach(function (e) { if (e.effective <= day) hit = e; });
+    return hit;
+  }
+  function nextUpdateDue(after) {
+    var y = +after.slice(0, 4);
+    return after < y + '-07-01' ? y + '-07-01' : (y + 1) + '-01-01';
+  }
+
+  function bpaf(A, PD) {
+    var hi = PD.bpaf, lo = PD.bpafMin !== undefined ? PD.bpafMin : PD.bpaf, a = PD.bpafLo || 0, b = PD.bpafHi || 0;
+    if (!b || A <= a) return hi;
+    if (A >= b) return lo;
+    return hi - (A - a) * (hi - lo) / (b - a);
+  }
+
+  function pdTax(A, C, EI, P, PD, tc, tcp) {
+    tc = tc || 0; tcp = tcp || 0;
+    if (A <= 0) return [0.0, 0.0];
+    var br = function (tb) { var h = null; tb.forEach(function (x) { if (A >= x[0]) h = x; }); return h; };
+    var fb = br(PD.fed), R = fb[1], K = fb[2];
+    var base = PD.cppBaseR / PD.cppR;
+    var K2 = PD.fLow * Math.min(P * C * base, PD.cppBaseMax) + PD.fLow * Math.min(P * EI, PD.eiMax);
+    var fed = Math.max(0, R * A - K - PD.fLow * (tc || bpaf(A, PD)) - K2 - Math.min(PD.fLow * A, PD.fLow * PD.cea));
+    var bb = br(PD.bc), V = bb[1], KP = bb[2];
+    var K2P = PD.bLow * Math.min(P * C * base, PD.cppBaseMax) + PD.bLow * Math.min(P * EI, PD.eiMax);
+    var T4 = Math.max(0, V * A - KP - PD.bLow * (tcp || PD.tcp) - K2P);
+    var S = A <= PD.bcRedLo ? Math.min(T4, PD.bcRedMax)
+      : A <= PD.bcRedHi ? Math.min(T4, Math.max(0, PD.bcRedMax - (A - PD.bcRedLo) * PD.bcRedR)) : 0;
+    return [fed, Math.max(0, T4 - S)];
+  }
+
+  function addDays(iso, n) {
+    var d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+  // Python weekday(): Monday 0 ... Sunday 6
+  function weekday(iso) { return (new Date(iso + 'T00:00:00Z').getUTCDay() + 6) % 7; }
+
+  // emps: [{name, type 'sal'|'hr', salary, rate, hired, l30h, l30d, vacPct, td1_fed, td1_bc, cpp_exempt, ei_exempt}]
+  // inputs: {name: {reg, ot, dt, stat, bonus, vac, pay: {base, ot, stat}}}; ytd: {name: {gross, cpp, cpp2, ei}}
+  function compute(tables, emps, inputs, P, statDate, day, ytd) {
+    var PD = Object.assign({}, tableFor(tables, day).PD);
+    if (PD.yampe === undefined) PD.yampe = 85000;
+    if (PD.cpp2R === undefined) PD.cpp2R = 0.04;
+    if (PD.cpp2Max === undefined) PD.cpp2Max = 416.00;
+    var enh = (PD.cppR - PD.cppBaseR) / PD.cppR;
+    ytd = ytd || {};
+    var K = ['base', 'ot', 'stat', 'bonus', 'vac', 'gross', 'hrs', 'cpp', 'cpp2', 'ei', 'fed', 'bc', 'net'];
+    var T = {}; K.forEach(function (k) { T[k] = 0.0; });
+    var rows = [];
+    emps.forEach(function (e) {
+      var v = inputs[e.name] || {};
+      var reg = num(v.reg), ot = num(v.ot), dt = num(v.dt), sh = num(v.stat), bonus = num(v.bonus), vacD = num(v.vac);
+      var sal = e.type === 'sal';
+      var rate = f(e.rate);
+      var pay = v.pay || {};
+      var base = sal ? f(e.salary) / P : ('base' in pay ? Number(pay.base) : reg * rate);
+      var otPay = sal ? 0 : ('ot' in pay ? Number(pay.ot) : ot * rate * 1.5 + dt * rate * 2);
+      var statOk = (!sal) && statDate && String(e.hired || '') <= addDays(statDate, -30);
+      var avgDay = statOk ? (f(e.l30h) * rate) / Math.max(f(e.l30d || 1), 1) : 0;
+      var statPay = sal ? 0 : ('stat' in pay ? avgDay + Number(pay.stat)
+        : avgDay + Math.min(sh, 12) * rate * 1.5 + Math.max(0, sh - 12) * rate * 2);
+      var earn = base + otPay + statPay + bonus;
+      var vacPct = e.vacPct !== undefined && e.vacPct !== null ? Number(e.vacPct) : 0.04;
+      var vacPay = sal ? 0 : earn * vacPct;
+      var gross = r2(earn + vacPay);
+      var regI = r2(gross - bonus * (1 + (sal ? 0 : vacPct)));
+      var bonI = r2(gross - regI);
+      var y = ytd[e.name] || {};
+      var piYtd = f(y.gross);
+      var cppEx = !!e.cpp_exempt, eiEx = !!e.ei_exempt;
+      var room = Math.max(0.0, PD.cppMax - f(y.cpp));
+      var cpp = cppEx || gross <= 0 ? 0.0 : r2(Math.min(Math.max(0, PD.cppR * (gross - PD.cppEx / P)), room));
+      var cppReg = cppEx ? 0.0 : Math.min(cpp, Math.max(0, PD.cppR * (regI - PD.cppEx / P)));
+      var c2 = function (amt) { return Math.max(0.0, Math.min(piYtd + amt, PD.yampe) - Math.max(piYtd, PD.ympe)) * PD.cpp2R; };
+      var room2 = Math.max(0.0, PD.cpp2Max - f(y.cpp2));
+      var cpp2 = cppEx ? 0.0 : r2(Math.min(c2(gross), room2));
+      var ei = eiEx ? 0.0 : r2(Math.min(PD.eiR * gross, Math.max(0.0, PD.eiMax - f(y.ei))));
+      var eiReg = Math.min(ei, PD.eiR * regI);
+      var cppC = !cppEx && f(y.cpp) + cpp >= PD.cppMax - 0.005 ? PD.cppMax / P : cppReg;
+      var eiC = !eiEx && f(y.ei) + ei >= PD.eiMax - 0.005 ? PD.eiMax / P : eiReg;
+      var F5 = cpp * enh + cpp2;
+      var F5A = gross ? F5 * regI / gross : 0.0;
+      var aReg = P * (regI - F5A);
+      var tc = f(e.td1_fed), tcp = f(e.td1_bc);
+      var t0 = pdTax(aReg, cppC, eiC, P, PD, tc, tcp);
+      var aB = aReg + bonI - (F5 - F5A);
+      var t1 = bonI ? pdTax(aB, cppC + (cpp - cppReg) / P, eiC + (ei - eiReg) / P, P, PD, tc, tcp) : t0;
+      var fed = r2(t0[0] / P + (t1[0] - t0[0])), bc = r2(t0[1] / P + (t1[1] - t0[1]));
+      var net = r2(gross - cpp - cpp2 - ei - fed - bc);
+      [['base', base], ['ot', otPay], ['stat', statPay], ['bonus', bonus], ['vac', vacPay], ['gross', gross],
+        ['hrs', reg + ot + dt + sh], ['cpp', cpp], ['cpp2', cpp2], ['ei', ei], ['fed', fed], ['bc', bc], ['net', net]]
+        .forEach(function (kv) { T[kv[0]] += kv[1]; });
+      rows.push({ name: e.name, type: sal ? 'salary' : 'hourly', hours: { reg: reg, ot: ot, dt: dt, stat: sh }, vac_days: vacD,
+        base: r2(base), ot_pay: r2(otPay), stat_pay: r2(statPay), bonus: r2(bonus), vac_pay: r2(vacPay), gross: gross,
+        cpp: cpp, cpp2: cpp2, ei: ei, fed: fed, bc: bc, net: net,
+        exempt: [['CPP', cppEx], ['EI', eiEx]].filter(function (x) { return x[1]; }).map(function (x) { return x[0]; }) });
+    });
+    var erCpp = r2(T.cpp), erCpp2 = r2(T.cpp2), erEi = r2(T.ei * PD.eiEr), tax = r2(T.fed + T.bc);
+    var totals = {}; K.forEach(function (k) { totals[k] = r2(T[k]); });
+    return { edition: tableFor(tables, day).edition, rows: rows, totals: totals, er_cpp: erCpp, er_cpp2: erCpp2, er_ei: erEi,
+      tax: tax, gross: r2(T.gross), net: r2(T.net), er: r2(erCpp + erCpp2 + erEi),
+      remit: r2(T.cpp + erCpp + T.cpp2 + erCpp2 + T.ei + erEi + tax) };
+  }
+
+  // ---- timesheet: BC overtime (bankpush_payroll.timesheet)
+  function mins(hhmm) { var p = String(hhmm).split(':'); return parseInt(p[0], 10) * 60 + parseInt(p[1], 10); }
+  function rowMinutes(r) {
+    var s = mins(r.start), e = mins(r.end);
+    if (e <= s) e += 24 * 60;
+    return Math.max(0, e - s - parseInt(r['break'] || 0, 10));
+  }
+  function timesheet(rows, frm, to, weekStart) {
+    weekStart = weekStart === undefined ? 6 : weekStart;
+    var days = {};
+    rows.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : mins(a.start) - mins(b.start); })
+      .forEach(function (r) { (days[r.date] = days[r.date] || []).push(r); });
+    var wk0 = addDays(frm, -((weekday(frm) - weekStart + 7) % 7));
+    var out = { reg: 0.0, ot: 0.0, dt: 0.0, stat: 0.0, pay: { base: 0.0, ot: 0.0, stat: 0.0 }, bonus: 0.0, days: [] };
+    var week = null, weekReg = 0;
+    Object.keys(days).sort().forEach(function (d) {
+      if (d < wk0 || d > to) return;
+      var wk = addDays(d, -((weekday(d) - weekStart + 7) % 7));
+      if (wk !== week) { week = wk; weekReg = 0; }
+      var paid = d >= frm;
+      var stat = days[d].some(function (r) { return !!r.stat; });
+      var sl = [], done = 0;
+      days[d].forEach(function (r) {
+        var m = rowMinutes(r), rate = f(r.rate);
+        [[0, 480, 'reg'], [480, 720, 'ot'], [720, 1000000, 'dt']].forEach(function (b) {
+          var part = Math.max(0, Math.min(done + m, b[1]) - Math.max(done, b[0]));
+          if (part) sl.push([part, rate, stat ? 'stat' : b[2]]);
+        });
+        done += m;
+      });
+      var autoOt = 0; sl.forEach(function (s) { if (s[2] === 'ot' || s[2] === 'dt') autoOt += s[0]; });
+      var man = null;
+      days[d].some(function (r) { if (r.ot_manual !== undefined && r.ot_manual !== null && r.ot_manual !== '') { man = r.ot_manual; return true; } return false; });
+      var flag = '';
+      if (man !== null && !stat) {
+        var mm = pyRound(Number(man) * 60);
+        if (mm < autoOt) flag = 'manual overtime is LESS than BC requires';
+        else if (mm > autoOt) {
+          flag = 'manual overtime is more than BC requires (allowed)';
+          var extra = mm - autoOt;
+          for (var i = sl.length - 1; i >= 0; i--) {
+            var s_ = sl[i];
+            if (extra && s_[2] === 'reg') { var t = Math.min(extra, s_[0]); s_[0] -= t; sl.push([t, s_[1], 'ot']); extra -= t; }
+          }
+        }
+      }
+      if (!stat) {
+        sl.slice().forEach(function (s_) {
+          if (s_[2] !== 'reg') return;
+          var over = Math.max(0, weekReg + s_[0] - 2400);
+          weekReg += s_[0] - over;
+          if (over) { s_[0] -= over; sl.push([over, s_[1], 'ot']); }
+        });
+      }
+      var tot = 0; sl.forEach(function (s) { tot += s[0]; });
+      var rec = { date: d, minutes: tot, reg: 0, ot: 0, dt: 0, stat: 0, auto_ot: autoOt / 60, manual_ot: man, flag: flag, paid: paid };
+      sl.forEach(function (s) { rec[s[2]] += s[0]; });
+      if (paid) {
+        sl.forEach(function (s) {
+          if (!s[0]) return;
+          var h = s[0] / 60;
+          if (s[2] === 'reg') out.pay.base += h * s[1];
+          else if (s[2] === 'ot') out.pay.ot += h * s[1] * 1.5;
+          else if (s[2] === 'dt') out.pay.ot += h * s[1] * 2;
+          else out.pay.stat += h * s[1] * 1.5;
+        });
+        if (stat) {
+          var past12 = tot - 720;
+          if (past12 > 0) out.pay.stat += past12 / 60 * sl[sl.length - 1][1] * 0.5;
+        }
+        ['reg', 'ot', 'dt', 'stat'].forEach(function (k) { out[k] += rec[k] / 60; });
+        var bs = 0; days[d].forEach(function (r) { bs += f(r.bonus); });
+        out.bonus += bs;
+        out.days.push(rec);
+      }
+    });
+    ['reg', 'ot', 'dt', 'stat', 'bonus'].forEach(function (k) { out[k] = r2(out[k]); });
+    out.pay = { base: r2(out.pay.base), ot: r2(out.pay.ot), stat: r2(out.pay.stat) };
+    return out;
+  }
+
+  var X = { r2: r2, bpaf: bpaf, pdTax: pdTax, compute: compute, timesheet: timesheet, rowMinutes: rowMinutes,
+    tableFor: tableFor, nextUpdateDue: nextUpdateDue, addDays: addDays, weekday: weekday };
+  if (typeof module !== 'undefined' && module.exports) module.exports = X; else root.DBPay = X;
+})(this);
+
+</script>
+<script>
+var TABLES = {"editions": [{"edition": "T4032BC Jan 2026", "effective": "2026-01-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-jan/t4032bc-january-general-information.html", "added": "2026-10-25 from CRA T4032-BC(E) Rev. 26, January 2026 (read 2026-10-25)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0506, 0], [50363, 0.077, 1330], [100728, 0.105, 4150], [115648, 0.1229, 6220], [140430, 0.147, 9604], [190405, 0.168, 13603], [265545, 0.205, 23428]], "tcp": 13216, "bLow": 0.0506, "bcRedMax": 575, "bcRedLo": 25570, "bcRedHi": 41722, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}, {"edition": "T4032BC Jul 2026", "effective": "2026-07-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-july/t4032bc-july-general-information.html", "added": "2026-10-25 (the DropBookAI v48 numbers = CRA T4032BC July 2026 / T4127 123rd edition; BC lowest rate prorated 6.14%, BC reduction prorated 805 -- proposed changes, per CRA)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0614, 0], [50363, 0.077, 786], [100728, 0.105, 3606], [115648, 0.1229, 5676], [140430, 0.147, 9061], [190405, 0.168, 13059], [265545, 0.205, 22884]], "tcp": 13216, "bLow": 0.0614, "bcRedMax": 805, "bcRedLo": 25570, "bcRedHi": 44952, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}]};
+var APP_VERSION = '2026-10-27 / T4032BC Jul 2026';
+var FIRM = 'Joseph Zhu, CPA, CGA';
+(function(){
+'use strict';
+var KEY = 'dbpay.v1';
+var S = load();
+var tab = S.role === 'emp' ? 'my' : 'hours';
+var selEmp = '';
+var lastRun = null;                                          // the run on screen (before / after posting)
+
+// ---------- storage (this browser only)
+function blank(){ return {lang:'zh', role:null, setup:null, me:'', boss:'', rows:[], subs:[], runs:[]}; }
+function load(){ try{ var s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && typeof s === 'object' ? Object.assign(blank(), s) : blank(); }catch(e){ return blank(); } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ alertBox(T('这台设备存不下了：请先做备份。','This device could not save: make a backup now.')); } }
+
+// ---------- words
+function T(zh, en){ return S.lang === 'en' ? en : zh; }
+function esc(s){ return String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function money(x){ return Number(x || 0).toLocaleString('en-CA', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function hrs(x){ return (Math.round(Number(x || 0) * 100) / 100).toString(); }
+function today(){ var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+function nowStr(){ var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19).replace('T', ' '); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+var P_OF = {weekly:52, bi:26, semi:24, monthly:12};
+var FREQ = function(f){ return {weekly:T('每周','weekly'), bi:T('双周','every 2 weeks'), semi:T('半月','twice a month'), monthly:T('每月','monthly')}[f] || f; };
+
+// ---------- SHA-256 (no crypto.subtle: works from a file and on any phone)
+function sha256(str){
+  function rr(n, x){ return (x >>> n) | (x << (32 - n)); }
+  var K = [], H = [], p = 2, n, i, j;
+  function isP(m){ for (var k = 2; k * k <= m; k++) if (m % k === 0) return false; return true; }
+  function fr(x){ return ((x - Math.floor(x)) * 4294967296) | 0; }
+  for (n = 0; n < 64; p++) if (isP(p)) { if (n < 8) H[n] = fr(Math.pow(p, 1/2)); K[n++] = fr(Math.pow(p, 1/3)); }
+  var b = unescape(encodeURIComponent(str)), w = [], l = b.length * 8;
+  for (i = 0; i < b.length; i++) w[i >> 2] |= b.charCodeAt(i) << ((3 - i % 4) * 8);
+  w[l >> 5] |= 0x80 << (24 - l % 32); w[((l + 64 >> 9) << 4) + 15] = l;
+  for (j = 0; j < w.length; j += 16) {
+    var a = H.slice(0), W = [];
+    for (i = 0; i < 64; i++) {
+      if (i < 16) W[i] = w[j + i] | 0;
+      else W[i] = (rr(17, W[i-2]) ^ rr(19, W[i-2]) ^ (W[i-2] >>> 10)) + W[i-7] + (rr(7, W[i-15]) ^ rr(18, W[i-15]) ^ (W[i-15] >>> 3)) + W[i-16] | 0;
+      var t1 = a[7] + (rr(6, a[4]) ^ rr(11, a[4]) ^ rr(25, a[4])) + ((a[4] & a[5]) ^ (~a[4] & a[6])) + K[i] + W[i] | 0;
+      var t2 = (rr(2, a[0]) ^ rr(13, a[0]) ^ rr(22, a[0])) + ((a[0] & a[1]) ^ (a[0] & a[2]) ^ (a[1] & a[2])) | 0;
+      a = [t1 + t2 | 0].concat(a); a[4] = a[4] + t1 | 0; a.length = 8;
+    }
+    for (i = 0; i < 8; i++) H[i] = H[i] + a[i] | 0;
+  }
+  return H.map(function(x){ return ('00000000' + (x >>> 0).toString(16)).slice(-8); }).join('');
+}
+// a file we give out: its content + the SHA-256 of that content (the office checks it)
+function sealed(obj){ var body = JSON.stringify(obj); return JSON.stringify({sha256: sha256(body), body: body}, null, 0); }
+function unseal(text){
+  var o = JSON.parse(text);
+  if (o && o.body && o.sha256) { if (sha256(o.body) !== o.sha256) throw new Error(T('文件被改过（SHA-256 对不上）','the file was changed (SHA-256 does not match)')); return JSON.parse(o.body); }
+  return o;                                                   // a setup file from the office (made by Python, not sealed)
+}
+
+// ---------- give files: one share sheet (phone -- one per tap) or downloads (computer)
+function give(name, data, type){ giveMany([{name: name, data: data, type: type}]); }
+function giveMany(list){
+  var blobs = list.map(function(x){ return {name: x.name, blob: new Blob([x.data], {type: x.type || 'application/json'})}; });
+  try {
+    var files = blobs.map(function(x){ return new File([x.blob], x.name, {type: x.blob.type}); });
+    if (navigator.canShare && navigator.canShare({files: files})) { navigator.share({files: files}).catch(function(){}); return; }
+  } catch (e) {}
+  blobs.forEach(function(x, i){ setTimeout(function(){
+    var a = document.createElement('a'); a.href = URL.createObjectURL(x.blob); a.download = x.name;
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 2000); }, i * 400); });
+}
+function pick(accept, cb){
+  var i = document.createElement('input'); i.type = 'file'; i.accept = accept || '.json,application/json'; i.multiple = true;
+  i.onchange = function(){ Array.prototype.forEach.call(i.files, function(f){ var r = new FileReader(); r.onload = function(){ cb(String(r.result), f.name); }; r.readAsText(f); }); };
+  i.click();
+}
+
+// ---------- a tiny PDF (text only, Helvetica) for payslips
+function pdf(lines, title){
+  function enc(s){ return String(s).replace(/[^\x20-\x7e]/g, '?').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'); }
+  var y = 770, ops = ['BT', '/F1 10 Tf'];
+  lines.forEach(function(l){
+    var big = l && l.charAt(0) === '#'; var t = big ? l.slice(1) : l;
+    ops.push((big ? '/F2 13 Tf ' : '/F1 10 Tf ') + '1 0 0 1 50 ' + y + ' Tm (' + enc(t) + ') Tj'); y -= big ? 20 : 14;
+  });
+  ops.push('ET');
+  var content = ops.join('\n');
+  var objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>', '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
+    '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream', '<< /Title (' + enc(title || '') + ') /Producer (DropBookAI) >>'];
+  var out = '%PDF-1.4\n', off = [];
+  objs.forEach(function(o, i){ off.push(out.length); out += (i + 1) + ' 0 obj\n' + o + '\nendobj\n'; });
+  var x = out.length;
+  out += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n' + off.map(function(o){ return ('0000000000' + o).slice(-10) + ' 00000 n \n'; }).join('');
+  out += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R /Info 7 0 R >>\nstartxref\n' + x + '\n%%EOF';
+  return out;
+}
+
+// ---------- dialogs (no alert(): they block)
+function alertBox(msg){ var f = document.getElementById('dlgf'); f.innerHTML = '<p>' + msg + '</p><div style="text-align:right"><button class="pri">' + T('好','OK') + '</button></div>'; document.getElementById('dlg').showModal(); }
+
+// ---------- employees, rows
+function emps(){ return ((S.setup || {}).employees || []); }
+function emp(name){ return emps().filter(function(e){ return e.name === name; })[0]; }
+function active(on){ return emps().filter(function(e){ return !e.left || e.left >= on; }); }
+function hoursOf(r){ return DBPay.rowMinutes(r) / 60; }
+function otManual(r){ if (!r.ot_from || !r.ot_to) return ''; var m = DBPay.rowMinutes({start:r.ot_from, end:r.ot_to}); return Math.round(m / 60 * 100) / 100; }
+function calcRow(r){ return {date:r.date, start:r.start, end:r.end, 'break':Number(r['break'] || 0), rate:Number(r.rate || 0), stat:!!r.stat,
+  ot_manual: r.use_manual ? otManual(r) : '', bonus:Number(r.bonus || 0)}; }
+function rowsOf(name){ return S.rows.filter(function(r){ return r.emp === name; }); }
+
+// ---------- pay periods
+function periodFor(freq, anchorEnd){
+  var to = anchorEnd || today(), d = new Date(to + 'T00:00:00Z');   // semi / monthly: the period holding this day
+  if (freq === 'semi') { var day = d.getUTCDate(), y = d.getUTCFullYear(), m = d.getUTCMonth();
+    if (day <= 15) return {from: iso(y, m, 1), to: iso(y, m, 15)};
+    return {from: iso(y, m, 16), to: iso(y, m + 1, 0)}; }
+  if (freq === 'monthly') return {from: iso(d.getUTCFullYear(), d.getUTCMonth(), 1), to: iso(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)};
+  var n = freq === 'weekly' ? 7 : 14; return {from: DBPay.addDays(to, -(n - 1)), to: to};
+}
+function iso(y, m, d){ return new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10); }
+// the period after the last one paid (none yet: the one ending around today)
+function nextPeriod(){
+  var f = (S.setup || {}).freq || 'semi', last = S.runs.filter(function(r){ return !r.voided; }).map(function(r){ return r.period_to; }).sort().pop();
+  if (!last) return periodFor(f, today());
+  var nx = DBPay.addDays(last, 1);
+  if (f === 'semi' || f === 'monthly') return periodFor(f, nx);
+  return {from: nx, to: DBPay.addDays(last, f === 'weekly' ? 7 : 14)};
+}
+function remitDue(pay, kind){
+  var d = new Date(pay + 'T00:00:00Z'), y = d.getUTCFullYear(), m = d.getUTCMonth();
+  if (kind === 'quarterly') { var qm = Math.floor(m / 3) * 3 + 3; return iso(y, qm, 15); }
+  if (kind === 'accelerated') return d.getUTCDate() <= 15 ? iso(y, m, 25) : iso(y, m + 1, 10);
+  return iso(y, m + 1, 15);
+}
+// year to date: the office's figure (through ytd_through) + the runs posted here after it
+function ytdBefore(payDate){
+  var y = payDate.slice(0, 4), base = (S.setup || {}).ytd || {}, thr = (S.setup || {}).ytd_through || '', out = {};
+  emps().forEach(function(e){ var b = base[e.name] && base[e.name].year === y ? base[e.name] : {}; out[e.name] = {gross:+b.gross || 0, cpp:+b.cpp || 0, cpp2:+b.cpp2 || 0, ei:+b.ei || 0}; });
+  S.runs.forEach(function(r){
+    if (r.voided || r.pay_date.slice(0, 4) !== y || r.pay_date >= payDate || r.period_to <= thr) return;
+    r.result.rows.forEach(function(x){ var o = out[x.name] = out[x.name] || {gross:0, cpp:0, cpp2:0, ei:0};
+      o.gross = DBPay.r2(o.gross + x.gross); o.cpp = DBPay.r2(o.cpp + x.cpp); o.cpp2 = DBPay.r2(o.cpp2 + x.cpp2); o.ei = DBPay.r2(o.ei + x.ei); });
+  });
+  return out;
+}
+function tablesOk(payDate){
+  var eds = TABLES.editions.map(function(e){ return e.effective; }).sort(), last = eds[eds.length - 1];
+  var due = DBPay.nextUpdateDue(last);
+  return {ok: payDate < due, due: due, edition: DBPay.tableFor(TABLES, payDate).edition};
+}
+
+// ================= screens =================
+function render(){
+  document.documentElement.lang = S.lang === 'en' ? 'en' : 'zh';
+  document.getElementById('lang').textContent = S.lang === 'en' ? '中文' : 'EN';
+  document.getElementById('co').textContent = S.setup ? '· ' + S.setup.company : (S.role === 'emp' && S.me ? '· ' + S.me : '');
+  document.getElementById('foot').textContent = 'DropBookAI · ' + FIRM + ' · ' + T('版本 ','version ') + APP_VERSION + ' · ' + T('资料只存在这台设备上，请定期备份','your data stays on this device -- back it up regularly');
+  var tabs = !S.role ? [] : S.role === 'emp' ? [['my', T('我的工时','My hours')], ['send', T('交给老板','Send to the boss')], ['more', T('设置','Settings')]]
+    : [['hours', T('工时','Hours')], ['inbox', T('员工交来的','From employees')], ['pay', T('发工资','Pay run')], ['runs', T('已发','Paid')], ['staff', T('员工','Employees')], ['more', T('备份 / 设置','Backup / settings')]];
+  document.getElementById('nav').innerHTML = tabs.map(function(t){ return '<button data-t="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('');
+  document.getElementById('nav').style.display = tabs.length ? '' : 'none';
+  var m = document.getElementById('main');
+  if (!S.role) m.innerHTML = vStart();
+  else if (S.role === 'boss' && !S.setup && tab !== 'more') m.innerHTML = vNeedSetup();
+  else m.innerHTML = ({my:vMy, send:vSend, hours:vHours, inbox:vInbox, pay:vPay, runs:vRuns, staff:vStaff, more:vMore}[tab] || vHours)();
+}
+function vStart(){
+  return '<div class="card"><h2>' + T('欢迎','Welcome') + '</h2><p>' + T('这台设备给谁用？','Who uses this device?') + '</p>'
+    + '<div class="row"><button class="pri" data-a="role-boss">' + T('老板 / 管工资的人','The owner / whoever runs payroll') + '</button>&nbsp;<button data-a="role-emp">' + T('员工（只填自己的工时）','An employee (my own hours only)') + '</button></div>'
+    + '<p class="mut sm">' + T('iPhone：用 Safari 打开后按「分享 → 添加到主屏幕」，资料才不会被系统清掉。','iPhone: in Safari tap Share → Add to Home Screen, so the phone keeps your data.') + '</p></div>';
+}
+function vNeedSetup(){
+  return '<div class="card"><h2>' + T('先导入设置文件','First, import the setup file') + '</h2><p>' + T('会计事务所会给你一个 setup_公司名.json（员工、时薪、发薪频率）。','The accounting office gives you setup_<company>.json (employees, pay, how often you pay).') + '</p>'
+    + '<button class="pri" data-a="import">' + T('导入文件','Import a file') + '</button></div>';
+}
+// ----- employee: my hours
+function rowForm(r, who){
+  r = r || {date: today(), start:'09:00', end:'17:30', 'break':30};
+  var e = emp(r.emp || selEmp) || {};
+  return '<div class="row">'
+    + '<label>' + T('日期','Date') + '<input type="date" id="f-date" value="' + esc(r.date) + '"></label>'
+    + '<label>' + T('开工','Start') + '<input type="time" id="f-start" value="' + esc(r.start) + '"></label>'
+    + '<label>' + T('收工','End') + '<input type="time" id="f-end" value="' + esc(r.end) + '"></label>'
+    + '<label>' + T('无薪休息（分钟）','Unpaid break (min)') + '<input type="number" inputmode="numeric" id="f-break" style="width:90px" value="' + esc(r['break'] === undefined ? 30 : r['break']) + '"></label>'
+    + (who === 'boss' ? '<label>' + T('时薪','Rate / hour') + '<input type="number" step="0.01" inputmode="decimal" id="f-rate" style="width:100px" value="' + esc(r.rate || e.rate || '') + '"></label>' : '')
+    + '<label>' + T('加班 从（可空）','Overtime from (optional)') + '<input type="time" id="f-otf" value="' + esc(r.ot_from || '') + '"></label>'
+    + '<label>' + T('加班 到','Overtime to') + '<input type="time" id="f-ott" value="' + esc(r.ot_to || '') + '"></label>'
+    + '<label>' + T('法定假日','Stat holiday') + '<input type="checkbox" id="f-stat"' + (r.stat ? ' checked' : '') + '></label>'
+    + (who === 'boss' ? '<label>' + T('奖金 $','Bonus $') + '<input type="number" step="0.01" inputmode="decimal" id="f-bonus" style="width:100px" value="' + esc(r.bonus || '') + '"></label>' : '')
+    + '<label style="flex:1;min-width:160px">' + T('备注','Note') + '<input id="f-note" value="' + esc(r.note || '') + '"></label></div>';
+}
+function readForm(who){
+  var g = function(id){ var x = document.getElementById(id); return x ? x.value : ''; };
+  var r = {date:g('f-date'), start:g('f-start'), end:g('f-end'), 'break':Number(g('f-break') || 0), ot_from:g('f-otf'), ot_to:g('f-ott'),
+    stat: document.getElementById('f-stat').checked, note:g('f-note')};
+  if (who === 'boss') { r.rate = Number(g('f-rate') || 0); r.bonus = Number(g('f-bonus') || 0); }
+  if (!r.date || !r.start || !r.end) throw new Error(T('日期、开工、收工都要填','date, start and end are needed'));
+  if (who === 'boss' && !(r.rate > 0)) throw new Error(T('时薪要填','the rate is needed'));
+  if (!!r.ot_from !== !!r.ot_to) throw new Error(T('加班要有「从」和「到」','overtime needs both from and to'));
+  return r;
+}
+function dayCards(list, who){
+  if (!list.length) return '<p class="mut">' + T('还没有记录','nothing yet') + '</p>';
+  return list.slice().sort(function(a, b){ return a.date < b.date ? 1 : a.date > b.date ? -1 : (a.start < b.start ? 1 : -1); }).map(function(r){
+    var h = hoursOf(r), om = otManual(r);
+    var st = r.approved ? '<span class="pill a">' + T('已批','approved') + '</span>' : r.src === 'emp' ? '<span class="pill p">' + T('待老板批','waiting for approval') + '</span>' : '';
+    var ed = (r.edits || []).length ? ' <span class="pill p" title="' + esc((r.edits || []).map(function(x){ return x.at + ' ' + x.by; }).join('; ')) + '">' + T('老板改过 ','changed by the boss ') + r.edits.length + '</span>' : '';
+    return '<div class="day"><div class="h"><b>' + esc(r.date) + ' ' + esc(r.start) + '–' + esc(r.end) + '</b><span>' + hrs(h) + ' h' + (r.stat ? ' · ' + T('法定假日','stat') : '') + (om !== '' ? ' · ' + T('加班 ','overtime ') + hrs(om) + ' h' : '') + '</span></div>'
+      + '<div class="sm mut">' + T('休息 ','break ') + esc(r['break'] || 0) + ' min' + (who === 'boss' ? ' · $' + money(r.rate) + '/h' + (r.bonus ? ' · ' + T('奖金 $','bonus $') + money(r.bonus) : '') : '') + (r.note ? ' · ' + esc(r.note) : '') + ' ' + st + ed + '</div>'
+      + '<div style="margin-top:6px"><button data-a="edit" data-id="' + r.id + '">' + T('改','Edit') + '</button> <button data-a="del" data-id="' + r.id + '">' + T('删','Delete') + '</button>'
+      + (who === 'boss' && !r.approved ? ' <button data-a="approve1" data-id="' + r.id + '">' + T('批准','Approve') + '</button>' : '') + '</div></div>';
+  }).join('');
+}
+function vMy(){
+  if (!S.me) return '<div class="card"><h2>' + T('你的名字','Your name') + '</h2><p class="mut">' + T('写和老板那边一样的名字。','The name the boss has for you.') + '</p><div class="row"><label>' + T('名字','Name') + '<input id="me"></label><button class="pri" data-a="me">' + T('好','OK') + '</button></div></div>';
+  var mine = S.rows.filter(function(r){ return r.emp === S.me; });
+  return '<div class="card"><h2>' + T('记一天','Add a shift') + '</h2>' + rowForm(null, 'emp') + '<button class="pri" data-a="add-mine">' + T('记下','Save') + '</button></div>'
+    + '<div class="card"><h2>' + T('我记的','My shifts') + '</h2>' + dayCards(mine, 'emp') + '</div>';
+}
+function vSend(){
+  var p = periodFor('semi', today());
+  return '<div class="card"><h2>' + T('把工时交给老板','Send your hours to the boss') + '</h2>'
+    + '<div class="row"><label>' + T('从','From') + '<input type="date" id="s-from" value="' + p.from + '"></label><label>' + T('到','To') + '<input type="date" id="s-to" value="' + p.to + '"></label></div>'
+    + '<button class="pri" data-a="send-hours">' + T('做成文件，分享给老板','Make the file and share it with the boss') + '</button>'
+    + '<p class="mut sm">' + T('用短信、电邮或 AirDrop 发给老板。文件里有一个 SHA-256 指纹：改过一个字老板那边就会知道。','Send it by text, email or AirDrop. The file carries a SHA-256 fingerprint: the boss will see if anything in it was changed.') + '</p></div>';
+}
+// ----- boss: hours
+function vHours(){
+  var list = active(today());
+  if (!selEmp && list.length) selEmp = list[0].name;
+  var e = emp(selEmp) || {};
+  var head = '<div class="card"><div class="row"><label>' + T('员工','Employee') + '<select id="selEmp">' + emps().map(function(x){ return '<option' + (x.name === selEmp ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('') + '</select></label>'
+    + '<span class="mut sm" style="margin:0 0 14px 4px">' + (e.type === 'sal' ? T('年薪 $','salary $') + money(e.salary) + T('（年薪员工不用填工时；奖金在「发工资」里填）',' (salaried: no hours needed; a bonus goes on the pay run)') : T('时薪 $','rate $') + money(e.rate)) + '</span></div></div>';
+  if (e.type === 'sal') return head;
+  return head + '<div class="card"><h2>' + T('记一天','Add a shift') + '</h2>' + rowForm({date: today(), start:'09:00', end:'17:30', 'break':30, rate:e.rate}, 'boss')
+    + '<button class="pri" data-a="add-boss">' + T('记下（老板填的直接算已批准）','Save (the boss\'s own entries count as approved)') + '</button></div>'
+    + '<div class="card"><h2>' + T('记录','Shifts') + '</h2>' + dayCards(rowsOf(selEmp), 'boss') + '</div>';
+}
+// ----- boss: from employees
+function vInbox(){
+  var pend = S.rows.filter(function(r){ return r.src === 'emp' && !r.approved; });
+  var by = {}; pend.forEach(function(r){ (by[r.emp] = by[r.emp] || []).push(r); });
+  return '<div class="card"><h2>' + T('导入员工交来的工时文件','Import hours files from employees') + '</h2><button class="pri" data-a="import">' + T('选文件','Choose files') + '</button></div>'
+    + (Object.keys(by).length ? Object.keys(by).map(function(n){
+      return '<div class="card"><h2>' + esc(n) + ' <span class="pill p">' + by[n].length + T(' 天待批',' to approve') + '</span></h2>' + (emp(n) ? '' : '<div class="bad">' + T('员工名单里没有这个名字：先在「员工」里加上，或者让员工改名字再交。','Not on the employees list: add them under Employees, or have them fix the name and send again.') + '</div>')
+        + dayCards(by[n], 'boss') + '<button class="pri" data-a="approve-all" data-n="' + esc(n) + '"' + (emp(n) ? '' : ' disabled') + '>' + T('全部批准','Approve all') + '</button></div>';
+    }).join('') : '<div class="card mut">' + T('没有待批的工时','Nothing waiting for approval') + '</div>');
+}
+// ----- boss: pay run
+function vPay(){
+  var p = lastRun && !lastRun.posted ? {from:lastRun.period_from, to:lastRun.period_to} : nextPeriod();
+  var payDate = lastRun && !lastRun.posted ? lastRun.pay_date : p.to;
+  var tok = tablesOk(payDate);
+  var h = '<div class="card"><h2>' + T('发工资','Pay run') + ' <small class="mut">' + FREQ(S.setup.freq) + '</small></h2>'
+    + '<div class="row"><label>' + T('工资期 从','Period from') + '<input type="date" id="p-from" value="' + p.from + '"></label><label>' + T('到','to') + '<input type="date" id="p-to" value="' + p.to + '"></label>'
+    + '<label>' + T('发薪日','Pay date') + '<input type="date" id="p-pay" value="' + payDate + '"></label></div>'
+    + '<div class="mut sm">' + T('年薪员工的奖金：','Bonus for salaried staff: ') + active(p.to).filter(function(e){ return e.type === 'sal'; }).map(function(e){ return '<label>' + esc(e.name) + '<input type="number" step="0.01" class="p-bon" data-n="' + esc(e.name) + '" style="width:110px" placeholder="0"></label>'; }).join('') + '</div>'
+    + (tok.ok ? '' : '<div class="bad">' + T('扣税表过期了（' + tok.due + ' 起 CRA 有新表）：请向会计事务所要新版本，不能算。','The tax tables are out of date (CRA has new ones from ' + tok.due + '): ask the accounting office for the new version.') + '</div>')
+    + '<button class="pri" data-a="calc"' + (tok.ok ? '' : ' disabled') + '>' + T('算','Calculate') + '</button></div>';
+  if (lastRun) h += runView(lastRun);
+  return h;
+}
+function runView(R){
+  var r = R.result;
+  var flags = R.flags.length ? R.flags.map(function(f){ return '<div class="' + (f.bad ? 'bad' : 'warn') + '">' + esc(f.text) + '</div>'; }).join('') : '';
+  var t = '<div class="card"><h2>' + T('结果','Result') + ' <small class="mut">' + esc(R.period_from) + ' – ' + esc(R.period_to) + ' · ' + T('发薪 ','paid ') + esc(R.pay_date) + ' · ' + esc(r.edition) + '</small></h2>' + flags
+    + '<div class="tw"><table><tr><th>' + T('员工','Employee') + '</th><th class="n">' + T('工时','Hours') + '</th><th class="n">' + T('工资总额','Gross') + '</th><th class="n">CPP</th><th class="n">CPP2</th><th class="n">EI</th><th class="n">' + T('所得税','Income tax') + '</th><th class="n">' + T('实发','Net') + '</th></tr>'
+    + r.rows.map(function(x){ return '<tr><td>' + esc(x.name) + '</td><td class="n">' + hrs(x.hours.reg + x.hours.ot + x.hours.dt + x.hours.stat) + '</td><td class="n">' + money(x.gross) + '</td><td class="n">' + money(x.cpp) + '</td><td class="n">' + money(x.cpp2) + '</td><td class="n">' + money(x.ei) + '</td><td class="n">' + money(x.fed + x.bc) + '</td><td class="n"><b>' + money(x.net) + '</b></td></tr>'; }).join('')
+    + '<tr class="tot"><td>' + T('合计','Total') + '</td><td></td><td class="n">' + money(r.gross) + '</td><td class="n">' + money(r.totals.cpp) + '</td><td class="n">' + money(r.totals.cpp2) + '</td><td class="n">' + money(r.totals.ei) + '</td><td class="n">' + money(r.tax) + '</td><td class="n">' + money(r.net) + '</td></tr></table></div>'
+    + '<p class="sm">' + T('雇主要另付：CPP $','Employer also pays: CPP $') + money(r.er_cpp) + ' · CPP2 $' + money(r.er_cpp2) + ' · EI $' + money(r.er_ei) + '<br><b>' + T('交给 CRA（PD7A）$','To CRA (PD7A) $') + money(r.remit) + T('，截止 ',', due ') + esc(R.remit_due) + '</b></p>';
+  if (!R.posted) t += '<button class="pri" data-a="post"' + (R.flags.some(function(f){ return f.bad && f.block; }) ? ' disabled' : '') + '>' + T('确定发这期工资','Confirm this pay run') + '</button> <span class="mut sm">' + T('确定后才能出工资单、导出给会计','payslips and the file for the accountant come after confirming') + '</span>';
+  else t += '<button class="pri" data-a="slips" data-no="' + esc(R.no) + '">' + T('工资单 PDF','Payslips (PDF)') + '</button> <button class="pri" data-a="export-run" data-no="' + esc(R.no) + '">' + T('导出给会计（pay run 文件）','Send to the accountant (pay run file)') + '</button>'
+    + (R.exported ? ' <span class="okt sm">' + T('已导出 ','exported ') + esc(R.exported) + '</span>' : '');
+  return t + '</div>';
+}
+function vRuns(){
+  var rs = S.runs.slice().reverse();
+  return '<div class="card"><h2>' + T('已发的工资','Pay runs') + '</h2>' + (rs.length ? '<div class="tw"><table><tr><th>No.</th><th>' + T('工资期','Period') + '</th><th>' + T('发薪日','Paid') + '</th><th class="n">' + T('总额','Gross') + '</th><th class="n">' + T('实发','Net') + '</th><th class="n">PD7A</th><th></th></tr>'
+    + rs.map(function(R){ return '<tr' + (R.voided ? ' style="opacity:.5"' : '') + '><td>' + esc(R.no) + '</td><td>' + esc(R.period_from) + ' – ' + esc(R.period_to) + '</td><td>' + esc(R.pay_date) + '</td><td class="n">' + money(R.result.gross) + '</td><td class="n">' + money(R.result.net) + '</td><td class="n">' + money(R.result.remit) + '<div class="sm mut">' + T('截止 ','due ') + esc(R.remit_due) + '</div></td><td>'
+      + (R.voided ? T('已作废','voided') : '<button data-a="slips" data-no="' + esc(R.no) + '">' + T('工资单','Payslips') + '</button> <button data-a="export-run" data-no="' + esc(R.no) + '">' + T('导出','Export') + '</button>' + (R.exported ? '' : ' <button data-a="void" data-no="' + esc(R.no) + '">' + T('作废','Void') + '</button>')) + '</td></tr>'; }).join('') + '</table></div>' : '<p class="mut">' + T('还没有','none yet') + '</p>')
+    + '<p class="mut sm">' + T('T4 由会计事务所做；这里的数字（每人全年总额、CPP、EI、税）只供核对。','The T4s are done by the accounting office; the year\'s totals here are for checking only.') + '</p>' + ytdTable() + '</div>';
+}
+function ytdTable(){
+  var y = today().slice(0, 4), Y = ytdBefore(y + '-12-31T');
+  return '<div class="tw"><table><tr><th>' + T('今年累计','This year so far') + '</th><th class="n">' + T('总额（T4 第 14 栏）','Gross (T4 box 14)') + '</th><th class="n">CPP (16)</th><th class="n">CPP2 (16A)</th><th class="n">EI (18)</th></tr>'
+    + emps().map(function(e){ var o = Y[e.name] || {}; return '<tr><td>' + esc(e.name) + '</td><td class="n">' + money(o.gross) + '</td><td class="n">' + money(o.cpp) + '</td><td class="n">' + money(o.cpp2) + '</td><td class="n">' + money(o.ei) + '</td></tr>'; }).join('') + '</table></div>';
+}
+function vStaff(){
+  return '<div class="card"><h2>' + T('员工','Employees') + '</h2><p class="mut sm">' + T('名单和工资由会计事务所的设置文件来。这里改了时薪，导出的 pay run 文件会带上，会计那边会对照。','The list comes from the office\'s setup file. A rate changed here goes out in the pay run file; the office checks it.') + '</p>'
+    + '<div class="tw"><table><tr><th>' + T('姓名','Name') + '</th><th>' + T('类型','Type') + '</th><th class="n">' + T('时薪 / 年薪','Rate / salary') + '</th><th>' + T('入职','Hired') + '</th><th>' + T('离职','Left') + '</th><th></th></tr>'
+    + emps().map(function(e, i){ return '<tr><td>' + esc(e.name) + '</td><td>' + (e.type === 'sal' ? T('年薪','salary') : T('时薪','hourly')) + '</td><td class="n"><input type="number" step="0.01" class="st-pay" data-i="' + i + '" style="width:110px" value="' + esc(e.type === 'sal' ? e.salary : e.rate) + '"></td><td>' + esc(e.hired || '') + '</td><td><input type="date" class="st-left" data-i="' + i + '" value="' + esc(e.left || '') + '"></td><td><button data-a="st-save" data-i="' + i + '">' + T('保存','Save') + '</button></td></tr>'; }).join('')
+    + '</table></div><h2 style="margin-top:14px">' + T('加新员工','Add an employee') + '</h2><div class="row"><label>' + T('姓名','Name') + '<input id="n-name"></label><label>' + T('类型','Type') + '<select id="n-type"><option value="hr">' + T('时薪','hourly') + '</option><option value="sal">' + T('年薪','salary') + '</option></select></label><label>' + T('时薪 / 年薪','Rate / salary') + '<input type="number" step="0.01" id="n-pay" style="width:110px"></label><label>' + T('入职','Hired') + '<input type="date" id="n-hired"></label><button data-a="st-add">' + T('加入','Add') + '</button></div>'
+    + '<p class="mut sm">' + T('新员工的 SIN、TD1、地址交给会计事务所（不在这里输）。','Give a new employee\'s SIN, TD1 and address to the accounting office (not typed here).') + '</p></div>';
+}
+function vMore(){
+  return '<div class="card"><h2>' + T('备份','Backup') + '</h2><p class="mut sm">' + T('资料只在这台设备的浏览器里：换手机、清除浏览记录都会丢。每次发完工资做一个备份。','Your data lives only in this browser: a new phone or clearing the browser loses it. Make a backup after every pay run.') + '</p>'
+    + '<button class="pri" data-a="backup">' + T('做备份文件','Make a backup file') + '</button> <button data-a="import">' + T('导入（设置 / 工时 / 备份）','Import (setup / hours / backup)') + '</button></div>'
+    + '<div class="card"><h2>' + T('设置','Settings') + '</h2><div class="row"><label>' + (S.role === 'boss' ? T('你的名字（批准、发薪会记下）','Your name (kept on approvals and pay runs)') : T('你的名字','Your name')) + '<input id="who" value="' + esc(S.role === 'boss' ? S.boss : S.me) + '"></label><button data-a="who">' + T('保存','Save') + '</button></div>'
+    + '<p class="sm mut">' + T('扣税表：','Tax tables: ') + esc(TABLES.editions.map(function(e){ return e.edition; }).join(', ')) + '</p>'
+    + '<button data-a="switch">' + T('换用户类型（老板 / 员工）','Switch (owner / employee)') + '</button></div>';
+}
+
+// ================= actions =================
+function who(){ var n = S.role === 'boss' ? S.boss : S.me; if (!n) throw new Error(T('先在「设置」里写你的名字','first put your name in Settings')); return n; }
+function rowById(id){ return S.rows.filter(function(r){ return r.id === id; })[0]; }
+function editRow(id){
+  var r = rowById(id), f = document.getElementById('dlgf'), whoami = S.role;
+  f.innerHTML = '<h2>' + T('改这一天','Change this shift') + '</h2>' + rowForm(r, whoami) + '<div style="text-align:right"><button value="cancel">' + T('取消','Cancel') + '</button> <button class="pri" id="dsave" value="ok">' + T('保存','Save') + '</button></div>';
+  document.getElementById('dlg').showModal();
+  document.getElementById('dsave').onclick = function(ev){
+    try {
+      var n = readForm(whoami);
+      if (S.role === 'boss' && r.src === 'emp') {             // the boss changes an employee's line: keep what the employee wrote
+        r.edits = r.edits || []; var before = {};
+        ['date','start','end','break','ot_from','ot_to','stat','rate','bonus','note'].forEach(function(k){ before[k] = r[k]; });
+        r.edits.push({at: nowStr(), by: who(), from: before});
+      }
+      Object.assign(r, n); if (S.role === 'boss') r.use_manual = !!r.ot_from;
+      if (S.role === 'boss' && r.src === 'emp') r.approved = null;
+      save(); render();
+    } catch (e) { ev.preventDefault(); alertBox(esc(e.message)); }
+  };
+}
+function addRow(src){
+  var r = readForm(src === 'emp' ? 'emp' : 'boss');
+  r.id = uid(); r.emp = src === 'emp' ? S.me : selEmp; r.src = src; r.made = nowStr();
+  if (src === 'boss') { r.approved = {by: who(), at: nowStr()}; r.use_manual = !!r.ot_from; }
+  S.rows.push(r); save(); render();
+}
+function importText(text, name){
+  var o = unseal(text);
+  if (o.kind === 'setup') {
+    if (S.setup && S.setup.company !== o.company) throw new Error(T('这个设置文件是 ' + o.company + ' 的，不是 ' + S.setup.company, 'this setup is for ' + o.company + ', not ' + S.setup.company));
+    S.setup = o; S.role = 'boss'; save(); tab = 'hours'; render(); return T('已导入设置：','Setup imported: ') + esc(o.company) + ' · ' + o.employees.length + T(' 位员工',' employee(s)');
+  }
+  if (o.kind === 'hours') {
+    if (S.role !== 'boss') throw new Error(T('工时文件要在老板那边导入','hours files are imported on the owner\'s device'));
+    var n = 0, dup = 0;
+    o.rows.forEach(function(r){
+      var same = S.rows.filter(function(x){ return x.emp === o.employee && x.date === r.date && x.start === r.start; })[0];
+      if (same) { dup++; return; }                              // the same shift again: kept once (the first one)
+      var e = emp(o.employee) || {};
+      S.rows.push(Object.assign({}, r, {id: uid(), emp: o.employee, src: 'emp', rate: r.rate || e.rate || 0, bonus: 0, approved: null, use_manual: !!r.ot_from,
+        sub: o.sha256 || '', received: nowStr()}));
+      n++;
+    });
+    S.subs.push({emp: o.employee, from: o.from, to: o.to, rows: n, dup: dup, at: nowStr(), file: name});
+    save(); tab = 'inbox'; render();
+    return esc(o.employee) + ': ' + n + T(' 天收到',' shift(s) in') + (dup ? T('，' + dup + ' 天重复（已有，没再加）', ', ' + dup + ' already there (not added again)') : '');
+  }
+  if (o.kind === 'backup') { var keep = S.lang; S = Object.assign(blank(), o.data); S.lang = keep; save(); render(); return T('已还原备份 ','Backup restored ') + esc(o.made); }
+  throw new Error(T('看不懂这个文件','not a file this app knows'));
+}
+function calc(){
+  var from = document.getElementById('p-from').value, to = document.getElementById('p-to').value, pay = document.getElementById('p-pay').value;
+  if (!from || !to || !pay || from > to) throw new Error(T('工资期日期不对','the period dates are not right'));
+  if (pay < to) throw new Error(T('发薪日不能早于工资期结束','the pay date cannot be before the period ends'));
+  var flags = [];
+  if ((new Date(pay) - new Date(to)) / 86400000 > 8) flags.push({bad:true, block:true, text:T('BC：工资期结束后 8 天内要发薪','BC: wages are paid within 8 days of the period end')});
+  if (S.runs.some(function(r){ return !r.voided && r.period_to === to; })) flags.push({bad:true, block:true, text:T('这一期已经发过了','this period is already paid')});
+  var list = active(to), inputs = {}, statDate = '', detail = {};
+  list.forEach(function(e){
+    if (e.type === 'sal') { var b = document.querySelector('.p-bon[data-n="' + CSS.escape(e.name) + '"]'); inputs[e.name] = {bonus: b && b.value ? b.value : ''}; return; }
+    var rows = rowsOf(e.name);
+    var inPer = rows.filter(function(r){ return r.date >= from && r.date <= to; });
+    var pend = inPer.filter(function(r){ return !r.approved; });
+    if (pend.length) flags.push({bad:true, block:true, text: e.name + ': ' + pend.length + T(' 天工时还没批准',' shift(s) not approved yet')});
+    var ts = DBPay.timesheet(rows.map(calcRow), from, to, (S.setup.week_start === undefined ? 6 : S.setup.week_start));
+    ts.days.forEach(function(d){ if (d.flag) flags.push({bad: d.flag.indexOf('LESS') >= 0, text: e.name + ' ' + d.date + ': ' + (d.flag.indexOf('LESS') >= 0 ? T('手填的加班少于 BC 规定（照 BC 规定算）','the overtime typed in is less than BC requires (paid as BC requires)') : T('手填的加班多于 BC 规定（照手填的付）','the overtime typed in is more than BC requires (paid as typed)'))}); });
+    inPer.forEach(function(r){ if (r.stat && !statDate) statDate = r.date; });
+    inputs[e.name] = {reg: ts.reg, ot: ts.ot, dt: ts.dt, stat: ts.stat, bonus: ts.bonus || '', pay: ts.pay};
+    detail[e.name] = ts;
+  });
+  var result = DBPay.compute(TABLES, list, inputs, P_OF[S.setup.freq], statDate, pay, ytdBefore(pay));
+  lastRun = {no: '', period_from: from, period_to: to, pay_date: pay, freq: S.setup.freq, stat_date: statDate, inputs: inputs, detail: detail,
+    week_start: (S.setup.week_start === undefined ? 6 : S.setup.week_start),
+    result: result, remit_due: remitDue(pay, S.setup.remitter || 'regular'), flags: flags, posted: false};
+  render();
+}
+function post(){
+  var R = lastRun; if (!R || R.posted) return;
+  var y = R.pay_date.slice(0, 4);
+  R.no = 'APP-' + y + '-' + ('0' + (S.runs.filter(function(r){ return r.pay_date.slice(0, 4) === y; }).length + 1)).slice(-2);
+  R.posted = nowStr(); R.by = who();
+  R.employees = active(R.period_to).map(function(e){ return Object.assign({}, e); });
+  R.rows = S.rows.filter(function(r){ var e = emp(r.emp); return e && e.type !== 'sal' && r.date >= DBPay.addDays(R.period_from, -6) && r.date <= R.period_to; });
+  S.runs.push(JSON.parse(JSON.stringify(R))); save(); render();
+}
+function runByNo(no){ return S.runs.filter(function(r){ return r.no === no; })[0]; }
+function payslips(no){
+  var R = runByNo(no), Y = ytdBefore(DBPay.addDays(R.pay_date, 1)), out = [];
+  R.result.rows.forEach(function(x){
+    var e = emp(x.name) || {}, y = Y[x.name] || {};
+    var L = ['#' + S.setup.company, '#PAY STATEMENT  ' + R.period_from + ' to ' + R.period_to + '   paid ' + R.pay_date, '',
+      'Employee   ' + x.name, '', 'EARNINGS'];
+    if (x.type === 'hourly') {
+      L.push(pad('  Regular hours', hrs(x.hours.reg)), pad('  Overtime hours (1.5x)', hrs(x.hours.ot)), pad('  Double time hours (2x)', hrs(x.hours.dt)));
+      if (x.hours.stat) L.push(pad('  Stat holiday hours', hrs(x.hours.stat)));
+    }
+    L.push(pad('  Regular pay', money(x.base)), pad('  Overtime pay', money(x.ot_pay)));
+    if (x.stat_pay) L.push(pad('  Stat holiday pay', money(x.stat_pay)));
+    if (x.bonus) L.push(pad('  Bonus', money(x.bonus)));
+    if (x.vac_pay) L.push(pad('  Vacation pay', money(x.vac_pay)));
+    L.push(pad('  GROSS', money(x.gross)), '', 'DEDUCTIONS', pad('  CPP', money(x.cpp)));
+    if (x.cpp2) L.push(pad('  CPP2', money(x.cpp2)));
+    L.push(pad('  EI', money(x.ei)), pad('  Federal income tax', money(x.fed)), pad('  BC income tax', money(x.bc)), '', pad('NET PAY', money(x.net)), '',
+      'YEAR TO DATE', pad('  Gross', money(y.gross)), pad('  CPP', money(y.cpp)), pad('  CPP2', money(y.cpp2)), pad('  EI', money(y.ei)), '',
+      'Tax tables: ' + R.result.edition + '.  Prepared with DropBookAI.');
+    out.push({name: 'Payslip_' + R.pay_date + '_' + x.name.replace(/[^A-Za-z0-9]+/g, '_') + '.pdf', data: pdf(L, 'Payslip ' + x.name), type: 'application/pdf'});
+  });
+  giveMany(out);
+}
+function pad(a, b){ var s = a; while (s.length + String(b).length < 52) s += ' '; return s + b; }
+function exportRun(no){
+  var R = runByNo(no);
+  var body = {kind:'payrun', app_version: APP_VERSION, company: S.setup.company, setup_made: S.setup.made, run: R, made_at: nowStr(), by: who()};
+  give('payrun_' + S.setup.company.replace(/[^A-Za-z0-9]+/g, '_') + '_' + R.period_to + '.json', sealed(body));
+  R.exported = nowStr(); save(); render();
+}
+
+// ================= events =================
+document.addEventListener('click', function(ev){
+  var b = ev.target.closest('button'); if (!b) return;
+  try {
+    if (b.parentNode && b.parentNode.id === 'nav') { tab = b.getAttribute('data-t'); render(); return; }
+    if (b.id === 'lang') { S.lang = S.lang === 'en' ? 'zh' : 'en'; save(); render(); return; }
+    var a = b.getAttribute('data-a'), id = b.getAttribute('data-id');
+    if (!a) return;
+    if (a === 'role-boss') { S.role = 'boss'; tab = 'hours'; save(); render(); }
+    else if (a === 'role-emp') { S.role = 'emp'; tab = 'my'; save(); render(); }
+    else if (a === 'me') { var v = document.getElementById('me').value.trim(); if (!v) throw new Error(T('写名字','type your name')); S.me = v; save(); render(); }
+    else if (a === 'add-mine') addRow('emp');
+    else if (a === 'add-boss') addRow('boss');
+    else if (a === 'edit') editRow(id);
+    else if (a === 'del') { var r = rowById(id); if (r.approved && S.runs.some(function(x){ return !x.voided && r.date >= x.period_from && r.date <= x.period_to; })) throw new Error(T('这一天已经发过工资，不能删','this day is in a pay run already')); S.rows = S.rows.filter(function(x){ return x.id !== id; }); save(); render(); }
+    else if (a === 'approve1') { rowById(id).approved = {by: who(), at: nowStr()}; save(); render(); }
+    else if (a === 'approve-all') { var n = b.getAttribute('data-n'), w = who(), at = nowStr(); S.rows.forEach(function(r){ if (r.emp === n && r.src === 'emp' && !r.approved) r.approved = {by: w, at: at}; }); save(); render(); }
+    else if (a === 'send-hours') {
+      var f = document.getElementById('s-from').value, t = document.getElementById('s-to').value;
+      var rows = S.rows.filter(function(r){ return r.emp === S.me && r.date >= f && r.date <= t; }).map(function(r){ return {date:r.date, start:r.start, end:r.end, 'break':r['break'], ot_from:r.ot_from, ot_to:r.ot_to, stat:r.stat, note:r.note}; });
+      if (!rows.length) throw new Error(T('这段时间没有记录','no shifts in these dates'));
+      var body = JSON.stringify({kind:'hours', app_version: APP_VERSION, employee: S.me, from: f, to: t, rows: rows, made_at: nowStr()});
+      var o = JSON.parse(body); o.sha256 = sha256(body);
+      give('hours_' + S.me.replace(/[^A-Za-z0-9]+/g, '_') + '_' + f + '_' + t + '.json', JSON.stringify({sha256: o.sha256, body: body}));
+    }
+    else if (a === 'import') pick('.json,application/json', function(text, name){ try { alertBox(importText(text, name)); } catch (e) { alertBox(esc(name) + ': ' + esc(e.message)); } });
+    else if (a === 'calc') calc();
+    else if (a === 'post') post();
+    else if (a === 'slips') payslips(b.getAttribute('data-no'));
+    else if (a === 'export-run') exportRun(b.getAttribute('data-no'));
+    else if (a === 'void') { var R = runByNo(b.getAttribute('data-no')); R.voided = nowStr(); R.voided_by = who(); save(); render(); }
+    else if (a === 'st-save') { var i = +b.getAttribute('data-i'), e = emps()[i], pv = document.querySelector('.st-pay[data-i="' + i + '"]').value, lv = document.querySelector('.st-left[data-i="' + i + '"]').value;
+      e.changes = e.changes || []; e.changes.push({at: nowStr(), by: who(), rate: e.rate, salary: e.salary, left: e.left || ''});
+      if (e.type === 'sal') e.salary = Number(pv); else e.rate = Number(pv); e.left = lv; save(); render(); }
+    else if (a === 'st-add') { var nm = document.getElementById('n-name').value.trim(), ty = document.getElementById('n-type').value, pv2 = Number(document.getElementById('n-pay').value);
+      if (!nm || !(pv2 > 0)) throw new Error(T('名字和工资都要填','name and pay are needed')); if (emp(nm)) throw new Error(T('已经有这个名字','that name is already there'));
+      S.setup.employees.push({name: nm, type: ty, rate: ty === 'hr' ? pv2 : 0, salary: ty === 'sal' ? pv2 : 0, hired: document.getElementById('n-hired').value, vacPct: 0.04, added_in_app: {at: nowStr(), by: who()}}); save(); render(); }
+    else if (a === 'backup') give('payroll_backup_' + today() + '.json', JSON.stringify({kind:'backup', made: nowStr(), data: S}));
+    else if (a === 'who') { var v2 = document.getElementById('who').value.trim(); if (S.role === 'boss') S.boss = v2; else S.me = v2; save(); render(); }
+    else if (a === 'switch') { S.role = null; save(); render(); }
+  } catch (e) { alertBox(esc(e.message)); }
+});
+document.addEventListener('change', function(ev){ if (ev.target.id === 'selEmp') { selEmp = ev.target.value; render(); } });
+render();
+})();
+</script>
+</body>
+</html>
