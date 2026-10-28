@@ -497,11 +497,13 @@ function dayCards(list, who){
   return list.slice().sort(function(a, b){ return a.date < b.date ? 1 : a.date > b.date ? -1 : (a.start < b.start ? 1 : -1); }).map(function(r){
     var h = hoursOf(r), om = otManual(r);
     var st = r.approved ? '<span class="pill a">' + T('已批','approved') + '</span>' : r.src === 'emp' ? '<span class="pill p">' + T('待老板批','waiting for approval') + '</span>' : '';
+    var run = inRun(r);
+    if (run) st = '<span class="pill a">' + T('已发 ','paid ') + esc(run.no) + '</span>';
     var ed = (r.edits || []).length ? ' <span class="pill p" title="' + esc((r.edits || []).map(function(x){ return x.at + ' ' + x.by; }).join('; ')) + '">' + T('老板改过 ','changed by the boss ') + r.edits.length + '</span>' : '';
     return '<div class="day"><div class="h"><b>' + esc(r.date) + ' ' + esc(r.start) + '–' + esc(r.end) + '</b><span>' + hrs(h) + ' h' + (r.stat ? ' · ' + T('法定假日','stat') : '') + (om !== '' ? ' · ' + T('加班 ','overtime ') + hrs(om) + ' h' : '') + '</span></div>'
       + '<div class="sm mut">' + T('休息 ','break ') + esc(r['break'] || 0) + ' min' + (who === 'boss' ? ' · $' + money(r.rate) + '/h' + (r.bonus ? ' · ' + T('奖金 $','bonus $') + money(r.bonus) : '') : '') + (r.note ? ' · ' + esc(r.note) : '') + ' ' + st + ed + '</div>'
-      + '<div style="margin-top:6px"><button data-a="edit" data-id="' + r.id + '">' + T('改','Edit') + '</button> <button data-a="del" data-id="' + r.id + '">' + T('删','Delete') + '</button>'
-      + (who === 'boss' && !r.approved ? ' <button data-a="approve1" data-id="' + r.id + '">' + T('批准','Approve') + '</button>' : '') + '</div></div>';
+      + (run ? '' : '<div style="margin-top:6px"><button data-a="edit" data-id="' + r.id + '">' + T('改','Edit') + '</button> <button data-a="del" data-id="' + r.id + '">' + T('删','Delete') + '</button>'
+      + (who === 'boss' && !r.approved ? ' <button data-a="approve1" data-id="' + r.id + '">' + T('批准','Approve') + '</button>' : '') + '</div>') + '</div>';
   }).join('');
 }
 function vMy(){
@@ -596,13 +598,21 @@ function vMore(){
 // ================= actions =================
 function who(){ var n = S.role === 'boss' ? S.boss : S.me; if (!n) throw new Error(T('先在「设置」里写你的名字','first put your name in Settings')); return n; }
 function rowById(id){ return S.rows.filter(function(r){ return r.id === id; })[0]; }
+// a pay run already confirmed: the period it covers, and the shifts it counted (user's iPhone test 2026-10-27: a new
+// shift typed into a paid period could be saved, then not deleted)
+function paidRun(day){ return S.runs.filter(function(x){ return !x.voided && day >= x.period_from && day <= x.period_to; })[0]; }
+function inRun(r){ return S.runs.filter(function(x){ return !x.voided && (x.rows || []).some(function(y){ return y.id === r.id; }); })[0]; }
+function paidMsg(x){ return T('这一天在已经发过的工资期里（' + x.period_from + ' 至 ' + x.period_to + '，' + x.no + '）。要补这一天：那一期还没导出给会计，就到「已发」把它作废，补上再重新发；已经导出了，请联系会计事务所。',
+  'This day is in a pay period already paid (' + x.period_from + ' to ' + x.period_to + ', ' + x.no + '). To add it: if that run is not yet sent to the accountant, void it under Paid, add the shift and pay again; if it was sent, ask the accounting office.'); }
 function editRow(id){
   var r = rowById(id), f = document.getElementById('dlgf'), whoami = S.role;
+  if (inRun(r)) throw new Error(T('这一条已经算进 ' + inRun(r).no + ' 发了工资，不能改','this shift is in pay run ' + inRun(r).no + ' -- it cannot be changed'));
   f.innerHTML = '<h2>' + T('改这一天','Change this shift') + '</h2>' + rowForm(r, whoami) + '<div style="text-align:right"><button value="cancel">' + T('取消','Cancel') + '</button> <button class="pri" id="dsave" value="ok">' + T('保存','Save') + '</button></div>';
   document.getElementById('dlg').showModal();
   document.getElementById('dsave').onclick = function(ev){
     try {
       var n = readForm(whoami);
+      if (S.role === 'boss' && paidRun(n.date)) throw new Error(paidMsg(paidRun(n.date)));
       if (S.role === 'boss' && r.src === 'emp') {             // the boss changes an employee's line: keep what the employee wrote
         r.edits = r.edits || []; var before = {};
         ['date','start','end','break','ot_from','ot_to','stat','rate','bonus','note'].forEach(function(k){ before[k] = r[k]; });
@@ -616,6 +626,7 @@ function editRow(id){
 }
 function addRow(src){
   var r = readForm(src === 'emp' ? 'emp' : 'boss');
+  if (src === 'boss' && paidRun(r.date)) throw new Error(paidMsg(paidRun(r.date)));
   r.id = uid(); r.emp = src === 'emp' ? S.me : selEmp; r.src = src; r.made = nowStr();
   if (src === 'boss') { r.approved = {by: who(), at: nowStr()}; r.use_manual = !!r.ot_from; }
   S.rows.push(r); save(); render();
@@ -628,8 +639,9 @@ function importText(text, name){
   }
   if (o.kind === 'hours') {
     if (S.role !== 'boss') throw new Error(T('工时文件要在老板那边导入','hours files are imported on the owner\'s device'));
-    var n = 0, dup = 0;
+    var n = 0, dup = 0, late = [];
     o.rows.forEach(function(r){
+      if (paidRun(r.date)) { late.push(r.date); return; }       // its period is paid already: not added, said below
       var same = S.rows.filter(function(x){ return x.emp === o.employee && x.date === r.date && x.start === r.start; })[0];
       if (same) { dup++; return; }                              // the same shift again: kept once (the first one)
       var e = emp(o.employee) || {};
@@ -637,9 +649,11 @@ function importText(text, name){
         sub: o.sha256 || '', received: nowStr()}));
       n++;
     });
-    S.subs.push({emp: o.employee, from: o.from, to: o.to, rows: n, dup: dup, at: nowStr(), file: name});
+    S.subs.push({emp: o.employee, from: o.from, to: o.to, rows: n, dup: dup, late: late, at: nowStr(), file: name});
     save(); tab = 'inbox'; render();
-    return esc(o.employee) + ': ' + n + T(' 天收到',' shift(s) in') + (dup ? T('，' + dup + ' 天重复（已有，没再加）', ', ' + dup + ' already there (not added again)') : '');
+    return esc(o.employee) + ': ' + n + T(' 天收到',' shift(s) in') + (dup ? T('，' + dup + ' 天重复（已有，没再加）', ', ' + dup + ' already there (not added again)') : '')
+      + (late.length ? '<br>' + T(late.length + ' 天在已经发过工资的期间里，没有加：', late.length + ' shift(s) fall in a period already paid, not added: ') + esc(late.join(', '))
+        + T('。要补，先作废那一期，或联系会计事务所。', '. To add them, void that run first, or ask the accounting office.') : '');
   }
   if (o.kind === 'backup') { var keep = S.lang; S = Object.assign(blank(), o.data); S.lang = keep; save(); render(); return T('已还原备份 ','Backup restored ') + esc(o.made); }
   throw new Error(T('看不懂这个文件','not a file this app knows'));
@@ -725,7 +739,7 @@ document.addEventListener('click', function(ev){
     else if (a === 'add-mine') addRow('emp');
     else if (a === 'add-boss') addRow('boss');
     else if (a === 'edit') editRow(id);
-    else if (a === 'del') { var r = rowById(id); if (r.approved && S.runs.some(function(x){ return !x.voided && r.date >= x.period_from && r.date <= x.period_to; })) throw new Error(T('这一天已经发过工资，不能删','this day is in a pay run already')); S.rows = S.rows.filter(function(x){ return x.id !== id; }); save(); render(); }
+    else if (a === 'del') { var r = rowById(id); if (inRun(r)) throw new Error(T('这一条已经算进 ' + inRun(r).no + ' 发了工资，不能删','this shift is in pay run ' + inRun(r).no + ' -- it cannot be deleted')); S.rows = S.rows.filter(function(x){ return x.id !== id; }); save(); render(); }
     else if (a === 'approve1') { rowById(id).approved = {by: who(), at: nowStr()}; save(); render(); }
     else if (a === 'approve-all') { var n = b.getAttribute('data-n'), w = who(), at = nowStr(); S.rows.forEach(function(r){ if (r.emp === n && r.src === 'emp' && !r.approved) r.approved = {by: w, at: at}; }); save(); render(); }
     else if (a === 'send-hours') {
