@@ -280,7 +280,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 </script>
 <script>
 var TABLES = {"editions": [{"edition": "T4032BC Jan 2026", "effective": "2026-01-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-jan/t4032bc-january-general-information.html", "added": "2026-10-25 from CRA T4032-BC(E) Rev. 26, January 2026 (read 2026-10-25)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0506, 0], [50363, 0.077, 1330], [100728, 0.105, 4150], [115648, 0.1229, 6220], [140430, 0.147, 9604], [190405, 0.168, 13603], [265545, 0.205, 23428]], "tcp": 13216, "bLow": 0.0506, "bcRedMax": 575, "bcRedLo": 25570, "bcRedHi": 41722, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}, {"edition": "T4032BC Jul 2026", "effective": "2026-07-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-july/t4032bc-july-general-information.html", "added": "2026-10-25 (the DropBookAI v48 numbers = CRA T4032BC July 2026 / T4127 123rd edition; BC lowest rate prorated 6.14%, BC reduction prorated 805 -- proposed changes, per CRA)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0614, 0], [50363, 0.077, 786], [100728, 0.105, 3606], [115648, 0.1229, 5676], [140430, 0.147, 9061], [190405, 0.168, 13059], [265545, 0.205, 22884]], "tcp": 13216, "bLow": 0.0614, "bcRedMax": 805, "bcRedLo": 25570, "bcRedHi": 44952, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}]};
-var APP_VERSION = '2026-10-27 / T4032BC Jul 2026';
+var APP_VERSION = '2026-10-29 / T4032BC Jul 2026';
 var FIRM = 'Joseph Zhu, CPA, CGA';
 (function(){
 'use strict';
@@ -289,11 +289,24 @@ var S = load();
 var tab = S.role === 'emp' ? 'my' : 'hours';
 var selEmp = '';
 var lastRun = null;                                          // the run on screen (before / after posting)
+var pending = [];                                            // photos picked, not shared yet (this screen only, never stored)
 
 // ---------- storage (this browser only)
-function blank(){ return {lang:'zh', role:null, setup:null, me:'', boss:'', rows:[], subs:[], runs:[]}; }
+function blank(){ return {lang:'zh', role:null, setup:null, me:'', boss:'', rows:[], subs:[], runs:[], sent:[]}; }
 function load(){ try{ var s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && typeof s === 'object' ? Object.assign(blank(), s) : blank(); }catch(e){ return blank(); } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ alertBox(T('这台设备存不下了：请先做备份。','This device could not save: make a backup now.')); } }
+// more than one company on one device (2026-10-29): the one in use is KEY, the others wait under KEY.co.<company>
+var CO_KEY = KEY + '.co.';
+function others(){ var out = []; try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k.indexOf(CO_KEY) === 0) out.push(k.slice(CO_KEY.length)); } } catch (e) {} return out.sort(); }
+function switchTo(company, setup){
+  if (S.setup) localStorage.setItem(CO_KEY + S.setup.company, JSON.stringify(S));      // throws when the device is full: nothing changed
+  var old = null; try { old = JSON.parse(localStorage.getItem(CO_KEY + company) || 'null'); } catch (e) {}
+  var lang = S.lang, boss = S.boss;
+  S = Object.assign(blank(), old || {}); S.lang = lang; S.role = 'boss'; S.boss = S.boss || boss;
+  if (setup) S.setup = setup;
+  localStorage.removeItem(CO_KEY + company);
+  pending = []; save(); tab = 'hours';
+}
 
 // ---------- words
 function T(zh, en){ return S.lang === 'en' ? en : zh; }
@@ -447,13 +460,13 @@ function render(){
   document.getElementById('co').textContent = S.setup ? '· ' + S.setup.company : (S.role === 'emp' && S.me ? '· ' + S.me : '');
   document.getElementById('foot').textContent = 'DropBookAI · ' + FIRM + ' · ' + T('版本 ','version ') + APP_VERSION + ' · ' + T('资料只存在这台设备上，请定期备份','your data stays on this device -- back it up regularly');
   var tabs = !S.role ? [] : S.role === 'emp' ? [['my', T('我的工时','My hours')], ['send', T('交给老板','Send to the boss')], ['more', T('设置','Settings')]]
-    : [['hours', T('工时','Hours')], ['inbox', T('员工交来的','From employees')], ['pay', T('发工资','Pay run')], ['runs', T('已发','Paid')], ['staff', T('员工','Employees')], ['more', T('备份 / 设置','Backup / settings')]];
+    : [['hours', T('工时','Hours')], ['inbox', T('员工交来的','From employees')], ['pay', T('发工资','Pay run')], ['runs', T('已发','Paid')], ['staff', T('员工','Employees')], ['docs', T('单据','Bills')], ['more', T('备份 / 设置','Backup / settings')]];
   document.getElementById('nav').innerHTML = tabs.map(function(t){ return '<button data-t="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('');
   document.getElementById('nav').style.display = tabs.length ? '' : 'none';
   var m = document.getElementById('main');
   if (!S.role) m.innerHTML = vStart();
   else if (S.role === 'boss' && !S.setup && tab !== 'more') m.innerHTML = vNeedSetup();
-  else m.innerHTML = ({my:vMy, send:vSend, hours:vHours, inbox:vInbox, pay:vPay, runs:vRuns, staff:vStaff, more:vMore}[tab] || vHours)();
+  else m.innerHTML = ({my:vMy, send:vSend, hours:vHours, inbox:vInbox, pay:vPay, runs:vRuns, staff:vStaff, docs:vDocs, more:vMore}[tab] || vHours)();
 }
 function vStart(){
   return '<div class="card"><h2>' + T('欢迎','Welcome') + '</h2><p>' + T('这台设备给谁用？','Who uses this device?') + '</p>'
@@ -565,7 +578,8 @@ function runView(R){
     + '<p class="sm">' + T('雇主要另付：CPP $','Employer also pays: CPP $') + money(r.er_cpp) + ' · CPP2 $' + money(r.er_cpp2) + ' · EI $' + money(r.er_ei) + '<br><b>' + T('交给 CRA（PD7A）$','To CRA (PD7A) $') + money(r.remit) + T('，截止 ',', due ') + esc(R.remit_due) + '</b></p>';
   if (!R.posted) t += '<button class="pri" data-a="post"' + (R.flags.some(function(f){ return f.bad && f.block; }) ? ' disabled' : '') + '>' + T('确定发这期工资','Confirm this pay run') + '</button> <span class="mut sm">' + T('确定后才能出工资单、导出给会计','payslips and the file for the accountant come after confirming') + '</span>';
   else t += '<button class="pri" data-a="slips" data-no="' + esc(R.no) + '">' + T('工资单 PDF','Payslips (PDF)') + '</button> <button class="pri" data-a="export-run" data-no="' + esc(R.no) + '">' + T('导出给会计（pay run 文件）','Send to the accountant (pay run file)') + '</button>'
-    + (R.exported ? ' <span class="okt sm">' + T('已导出 ','exported ') + esc(R.exported) + '</span>' : '');
+    + (R.exported ? ' <span class="okt sm">' + T('已导出 ','exported ') + esc(R.exported) + '</span>' : '')
+    + '<p class="sm mut">' + driveHint() + '</p>';
   return t + '</div>';
 }
 function vRuns(){
@@ -587,8 +601,67 @@ function vStaff(){
     + '</table></div><h2 style="margin-top:14px">' + T('加新员工','Add an employee') + '</h2><div class="row"><label>' + T('姓名','Name') + '<input id="n-name"></label><label>' + T('类型','Type') + '<select id="n-type"><option value="hr">' + T('时薪','hourly') + '</option><option value="sal">' + T('年薪','salary') + '</option></select></label><label>' + T('时薪 / 年薪','Rate / salary') + '<input type="number" step="0.01" id="n-pay" style="width:110px"></label><label>' + T('入职','Hired') + '<input type="date" id="n-hired"></label><button data-a="st-add">' + T('加入','Add') + '</button></div>'
     + '<p class="mut sm">' + T('新员工的 SIN、TD1、地址交给会计事务所（不在这里输）。','Give a new employee\'s SIN, TD1 and address to the accounting office (not typed here).') + '</p></div>';
 }
+// ----- boss: bills / receipts -> the accountant's Drive folder (2026-10-29). One photo = one paper; the file name carries
+// the month and the side, the office's intake reads it (bankpush_intake month_of; 'deposit' in the name = money in)
+function driveHint(){ return T('分享时选 <b>Google Drive</b>（或「存储到文件 → Google Drive」）→ 会计事务所给你的<b>公司文件夹</b>。会计那边下次收件就会读到。',
+  'In the share sheet choose <b>Google Drive</b> (or Save to Files → Google Drive) → the <b>company folder</b> the accounting office gave you. The office reads it at its next intake.'); }
+function vDocs(){
+  var h = '<div class="card"><h2>' + T('拍单据，交给会计','Bills and receipts for the accountant') + '</h2>'
+    + '<div class="row"><label>' + T('哪个月的账','For the month') + '<input type="month" id="d-month" value="' + esc(S.docMonth || today().slice(0, 7)) + '"></label>'
+    + '<label>' + T('类型','Kind') + '<select id="d-side"><option value="bill"' + (S.docSide !== 'deposit' ? ' selected' : '') + '>' + T('付款（发票、小票）','Paid out (bill, receipt)') + '</option>'
+    + '<option value="deposit"' + (S.docSide === 'deposit' ? ' selected' : '') + '>' + T('存款（收到的钱）','Deposit (money in)') + '</option></select></label></div>'
+    + '<button class="pri" data-a="docs">' + T('拍照 / 选照片','Take or choose photos') + '</button>'
+    + '<p class="mut sm">' + T('一张照片一张单据，整张拍清楚、拍正。可以在单据上手写：科目、私人、一半私人、老板付、现金、给哪家店……会计那边会读。',
+      'One photo = one paper, the whole page, sharp and straight. You may write on the paper by hand: account, personal, half personal, owner paid, cash, for which store ... the office reads it.') + '</p></div>';
+  if (pending.length) h += '<div class="card"><h2>' + T('要交的 ','To send: ') + pending.length + T(' 张',' photo(s)') + '</h2><div class="row">'
+    + pending.map(function(x){ return '<figure style="margin:0 8px 8px 0"><img src="' + x.url + '" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:6px"><figcaption class="sm mut" style="max-width:96px;word-break:break-all">' + esc(x.file.name) + '</figcaption></figure>'; }).join('')
+    + '</div><button class="pri" data-a="docs-share">' + T('分享给会计','Share with the accountant') + '</button> <button data-a="docs-clear">' + T('不要了','Clear') + '</button>'
+    + '<p class="sm">' + driveHint() + '</p></div>';
+  var sent = (S.sent || []).slice(-30).reverse();
+  if (sent.length) h += '<div class="card"><h2>' + T('这台设备交过的','Sent from this device') + '</h2><div class="tw"><table><tr><th>' + T('时间','When') + '</th><th>' + T('文件','File') + '</th></tr>'
+    + sent.map(function(x){ return '<tr><td class="sm">' + esc(x.at) + '</td><td class="sm">' + esc(x.name) + '</td></tr>'; }).join('') + '</table></div>'
+    + '<p class="mut sm">' + T('这里只记文件名，照片本身不存在这个程序里。','Only the file names are kept here, not the photos.') + '</p></div>';
+  return h;
+}
+function docName(month, side, i, f){
+  var ext = (/\.([A-Za-z0-9]{2,5})$/.exec(f.name || '') || [])[1] || ({'image/png':'png','image/heic':'heic','image/heif':'heif','image/webp':'webp'}[f.type] || 'jpg');
+  var co = S.setup ? S.setup.company.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') : 'company';
+  var st = nowStr().replace(/[-: ]/g, '').slice(0, 14);
+  return month + '_' + (side === 'deposit' ? 'deposit' : 'bill') + '_' + co + '_' + st + '_' + (i + 1) + '.' + ext.toLowerCase().replace('jpeg', 'jpg');
+}
+function pickPhotos(){
+  var month = document.getElementById('d-month').value, side = document.getElementById('d-side').value;
+  if (!/^20\d\d-(0[1-9]|1[0-2])$/.test(month)) throw new Error(T('先选月份','choose the month first'));
+  S.docMonth = month; S.docSide = side; save();
+  var i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.multiple = true;
+  i.onchange = function(){
+    var start = pending.length;
+    Array.prototype.forEach.call(i.files, function(f, k){
+      pending.push({file: new File([f], docName(month, side, start + k, f), {type: f.type || 'image/jpeg'}), url: URL.createObjectURL(f)});
+    });
+    tab = 'docs'; render();
+  };
+  i.click();
+}
+function shareDocs(){                                         // a second tap: a phone shares only from a tap
+  var files = pending.map(function(x){ return x.file; });
+  var done = function(){ files.forEach(function(f){ S.sent.push({name: f.name, at: nowStr()}); }); S.sent = S.sent.slice(-200);
+    pending.forEach(function(x){ URL.revokeObjectURL(x.url); }); pending = []; save(); render(); };
+  if (navigator.canShare && navigator.canShare({files: files})) {
+    navigator.share({files: files}).then(done).catch(function(e){ if (!e || e.name !== 'AbortError') alertBox(T('没有分享出去：','Not shared: ') + esc(e && e.message || e)); });
+    return;
+  }
+  files.forEach(function(f, k){ setTimeout(function(){                 // a computer: downloads -- then put them in the Drive folder
+    var a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name;
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 2000); }, k * 400); });
+  done();
+}
 function vMore(){
-  return '<div class="card"><h2>' + T('备份','Backup') + '</h2><p class="mut sm">' + T('资料只在这台设备的浏览器里：换手机、清除浏览记录都会丢。每次发完工资做一个备份。','Your data lives only in this browser: a new phone or clearing the browser loses it. Make a backup after every pay run.') + '</p>'
+  var co = S.role === 'boss' ? '<div class="card"><h2>' + T('公司','Company') + '</h2><p>' + T('现在：','Now: ') + '<b>' + esc(S.setup ? S.setup.company : T('（还没有）','(none yet)')) + '</b></p>'
+    + (others().length ? '<p class="mut sm">' + T('这台设备上的其他公司（资料都在，换过去就接着用）：','Other companies on this device (their data is kept; switch to carry on):') + '</p>'
+      + others().map(function(c){ return '<button data-a="co" data-c="' + esc(c) + '">' + T('换到 ','Switch to ') + esc(c) + '</button> '; }).join('') : '')
+    + '<p class="mut sm">' + T('加一家公司：导入那家公司的 setup_公司名.json（下面「导入」），现在这家的资料会留着。','Add a company: import its setup_<company>.json (Import, below); the data of this company stays.') + '</p></div>' : '';
+  return co + '<div class="card"><h2>' + T('备份','Backup') + '</h2><p class="mut sm">' + T('资料只在这台设备的浏览器里：换手机、清除浏览记录都会丢。每次发完工资做一个备份。','Your data lives only in this browser: a new phone or clearing the browser loses it. Make a backup after every pay run.') + '</p>'
     + '<button class="pri" data-a="backup">' + T('做备份文件','Make a backup file') + '</button> <button data-a="import">' + T('导入（设置 / 工时 / 备份）','Import (setup / hours / backup)') + '</button></div>'
     + '<div class="card"><h2>' + T('设置','Settings') + '</h2><div class="row"><label>' + (S.role === 'boss' ? T('你的名字（批准、发薪会记下）','Your name (kept on approvals and pay runs)') : T('你的名字','Your name')) + '<input id="who" value="' + esc(S.role === 'boss' ? S.boss : S.me) + '"></label><button data-a="who">' + T('保存','Save') + '</button></div>'
     + '<p class="sm mut">' + T('扣税表：','Tax tables: ') + esc(TABLES.editions.map(function(e){ return e.edition; }).join(', ')) + '</p>'
@@ -634,7 +707,11 @@ function addRow(src){
 function importText(text, name){
   var o = unseal(text);
   if (o.kind === 'setup') {
-    if (S.setup && S.setup.company !== o.company) throw new Error(T('这个设置文件是 ' + o.company + ' 的，不是 ' + S.setup.company, 'this setup is for ' + o.company + ', not ' + S.setup.company));
+    if (S.setup && S.setup.company !== o.company) {
+      var was = S.setup.company; switchTo(o.company, o); render();
+      return T('已换到 ','Now on ') + esc(o.company) + ' · ' + o.employees.length + T(' 位员工',' employee(s)') + '<br>'
+        + T(esc(was) + ' 的资料还在这台设备上：「备份 / 设置 → 公司」可以换回去。', 'The data of ' + esc(was) + ' stays on this device: Backup / settings → Company switches back.');
+    }
     S.setup = o; S.role = 'boss'; save(); tab = 'hours'; render(); return T('已导入设置：','Setup imported: ') + esc(o.company) + ' · ' + o.employees.length + T(' 位员工',' employee(s)');
   }
   if (o.kind === 'hours') {
@@ -655,7 +732,11 @@ function importText(text, name){
       + (late.length ? '<br>' + T(late.length + ' 天在已经发过工资的期间里，没有加：', late.length + ' shift(s) fall in a period already paid, not added: ') + esc(late.join(', '))
         + T('。要补，先作废那一期，或联系会计事务所。', '. To add them, void that run first, or ask the accounting office.') : '');
   }
-  if (o.kind === 'backup') { var keep = S.lang; S = Object.assign(blank(), o.data); S.lang = keep; save(); render(); return T('已还原备份 ','Backup restored ') + esc(o.made); }
+  if (o.kind === 'backup') {
+    var bco = ((o.data || {}).setup || {}).company;
+    if (S.setup && bco && bco !== S.setup.company) localStorage.setItem(CO_KEY + S.setup.company, JSON.stringify(S));   // another company's backup: keep this one
+    if (bco) localStorage.removeItem(CO_KEY + bco);
+    var keep = S.lang; S = Object.assign(blank(), o.data); S.lang = keep; save(); render(); return T('已还原备份 ','Backup restored ') + esc(o.made) + (bco ? ' · ' + esc(bco) : ''); }
   throw new Error(T('看不懂这个文件','not a file this app knows'));
 }
 function calc(){
@@ -762,7 +843,11 @@ document.addEventListener('click', function(ev){
     else if (a === 'st-add') { var nm = document.getElementById('n-name').value.trim(), ty = document.getElementById('n-type').value, pv2 = Number(document.getElementById('n-pay').value);
       if (!nm || !(pv2 > 0)) throw new Error(T('名字和工资都要填','name and pay are needed')); if (emp(nm)) throw new Error(T('已经有这个名字','that name is already there'));
       S.setup.employees.push({name: nm, type: ty, rate: ty === 'hr' ? pv2 : 0, salary: ty === 'sal' ? pv2 : 0, hired: document.getElementById('n-hired').value, vacPct: 0.04, added_in_app: {at: nowStr(), by: who()}}); save(); render(); }
-    else if (a === 'backup') give('payroll_backup_' + today() + '.json', JSON.stringify({kind:'backup', made: nowStr(), data: S}));
+    else if (a === 'backup') give('payroll_backup_' + (S.setup ? S.setup.company.replace(/[^A-Za-z0-9]+/g, '_') + '_' : '') + today() + '.json', JSON.stringify({kind:'backup', made: nowStr(), data: S}));
+    else if (a === 'co') { switchTo(b.getAttribute('data-c')); render(); alertBox(T('已换到 ','Now on ') + esc(S.setup ? S.setup.company : '')); }
+    else if (a === 'docs') pickPhotos();
+    else if (a === 'docs-share') shareDocs();
+    else if (a === 'docs-clear') { pending = []; render(); }
     else if (a === 'who') { var v2 = document.getElementById('who').value.trim(); if (S.role === 'boss') S.boss = v2; else S.me = v2; save(); render(); }
     else if (a === 'switch') { S.role = null; save(); render(); }
   } catch (e) { alertBox(esc(e.message)); }
