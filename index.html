@@ -280,19 +280,20 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 </script>
 <script>
 var TABLES = {"editions": [{"edition": "T4032BC Jan 2026", "effective": "2026-01-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-jan/t4032bc-january-general-information.html", "added": "2026-10-25 from CRA T4032-BC(E) Rev. 26, January 2026 (read 2026-10-25)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0506, 0], [50363, 0.077, 1330], [100728, 0.105, 4150], [115648, 0.1229, 6220], [140430, 0.147, 9604], [190405, 0.168, 13603], [265545, 0.205, 23428]], "tcp": 13216, "bLow": 0.0506, "bcRedMax": 575, "bcRedLo": 25570, "bcRedHi": 41722, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}, {"edition": "T4032BC Jul 2026", "effective": "2026-07-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-july/t4032bc-july-general-information.html", "added": "2026-10-25 (the DropBookAI v48 numbers = CRA T4032BC July 2026 / T4127 123rd edition; BC lowest rate prorated 6.14%, BC reduction prorated 805 -- proposed changes, per CRA)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0614, 0], [50363, 0.077, 786], [100728, 0.105, 3606], [115648, 0.1229, 5676], [140430, 0.147, 9061], [190405, 0.168, 13059], [265545, 0.205, 22884]], "tcp": 13216, "bLow": 0.0614, "bcRedMax": 805, "bcRedLo": 25570, "bcRedHi": 44952, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}]};
-var APP_VERSION = '2026-10-29 / T4032BC Jul 2026';
+var APP_VERSION = '2026-11-08 / T4032BC Jul 2026';
 var FIRM = 'Joseph Zhu, CPA, CGA';
 (function(){
 'use strict';
 var KEY = 'dbpay.v1';
 var S = load();
-var tab = S.role === 'emp' ? 'my' : 'hours';
+var tab = S.role === 'emp' ? 'my' : S.role === 'count' ? 'count' : 'hours';
+var cnWarn = false;                                          // spot count: some PLUs left blank, the next tap sends anyway
 var selEmp = '';
 var lastRun = null;                                          // the run on screen (before / after posting)
 var pending = [];                                            // photos picked, not shared yet (this screen only, never stored)
 
 // ---------- storage (this browser only)
-function blank(){ return {lang:'zh', role:null, setup:null, me:'', boss:'', rows:[], subs:[], runs:[], sent:[]}; }
+function blank(){ return {lang:'zh', role:null, setup:null, me:'', boss:'', rows:[], subs:[], runs:[], sent:[], countSetup:null, counts:[], countDraft:{}}; }
 function load(){ try{ var s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && typeof s === 'object' ? Object.assign(blank(), s) : blank(); }catch(e){ return blank(); } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ alertBox(T('这台设备存不下了：请先做备份。','This device could not save: make a backup now.')); } }
 // more than one company on one device (2026-10-29): the one in use is KEY, the others wait under KEY.co.<company>
@@ -457,20 +458,21 @@ function tablesOk(payDate){
 function render(){
   document.documentElement.lang = S.lang === 'en' ? 'en' : 'zh';
   document.getElementById('lang').textContent = S.lang === 'en' ? '中文' : 'EN';
-  document.getElementById('co').textContent = S.setup ? '· ' + S.setup.company : (S.role === 'emp' && S.me ? '· ' + S.me : '');
+  document.getElementById('co').textContent = S.role === 'count' && S.countSetup ? '· ' + S.countSetup.company : S.setup ? '· ' + S.setup.company : (S.role === 'emp' && S.me ? '· ' + S.me : '');
   document.getElementById('foot').textContent = 'DropBookAI · ' + FIRM + ' · ' + T('版本 ','version ') + APP_VERSION + ' · ' + T('资料只存在这台设备上，请定期备份','your data stays on this device -- back it up regularly');
-  var tabs = !S.role ? [] : S.role === 'emp' ? [['my', T('我的工时','My hours')], ['send', T('交给老板','Send to the boss')], ['more', T('设置','Settings')]]
+  var tabs = !S.role ? [] : S.role === 'count' ? [['count', T('盘点','Count')], ['counted', T('已盘','Done')], ['more', T('设置','Settings')]] : S.role === 'emp' ? [['my', T('我的工时','My hours')], ['send', T('交给老板','Send to the boss')], ['more', T('设置','Settings')]]
     : [['hours', T('工时','Hours')], ['inbox', T('员工交来的','From employees')], ['pay', T('发工资','Pay run')], ['runs', T('已发','Paid')], ['staff', T('员工','Employees')], ['docs', T('单据','Bills')], ['more', T('备份 / 设置','Backup / settings')]];
   document.getElementById('nav').innerHTML = tabs.map(function(t){ return '<button data-t="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('');
   document.getElementById('nav').style.display = tabs.length ? '' : 'none';
   var m = document.getElementById('main');
   if (!S.role) m.innerHTML = vStart();
   else if (S.role === 'boss' && !S.setup && tab !== 'more') m.innerHTML = vNeedSetup();
-  else m.innerHTML = ({my:vMy, send:vSend, hours:vHours, inbox:vInbox, pay:vPay, runs:vRuns, staff:vStaff, docs:vDocs, more:vMore}[tab] || vHours)();
+  else m.innerHTML = ({my:vMy, send:vSend, hours:vHours, inbox:vInbox, pay:vPay, runs:vRuns, staff:vStaff, docs:vDocs, more:vMore, count:vCount, counted:vCounted}[tab] || vHours)();
 }
 function vStart(){
   return '<div class="card"><h2>' + T('欢迎','Welcome') + '</h2><p>' + T('这台设备给谁用？','Who uses this device?') + '</p>'
     + '<div class="row"><button class="pri" data-a="role-boss">' + T('老板 / 管工资的人','The owner / whoever runs payroll') + '</button>&nbsp;<button data-a="role-emp">' + T('员工（只填自己的工时）','An employee (my own hours only)') + '</button></div>'
+    + '<p style="margin-top:10px"><button data-a="import">' + T('盘点的人：导入盘点文件','Counting stock: import the count file') + '</button></p>'
     + '<p class="mut sm">' + T('iPhone：用 Safari 打开后按「分享 → 添加到主屏幕」，资料才不会被系统清掉。','iPhone: in Safari tap Share → Add to Home Screen, so the phone keeps your data.') + '</p></div>';
 }
 function vNeedSetup(){
@@ -656,6 +658,75 @@ function shareDocs(){                                         // a second tap: a
     document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 2000); }, k * 400); });
   done();
 }
+// ----- spot count (2026-11-08): a few PLUs at the end of a shift. The setup file has PLU names and sizes only; nothing here is booked
+function cnId(i, k, w){ return 'cn-' + i + '-' + k + '-' + w; }
+function cnBox(id, label, step, max){ var d = S.countDraft || {};
+  return '<label>' + label + '<input class="cn" id="' + id + '" type="number" inputmode="decimal" min="0"' + (max ? ' max="' + max + '"' : '') + ' step="' + step + '" style="width:84px" value="' + esc(d[id] === undefined ? '' : d[id]) + '"></label>'; }
+function vCount(){
+  var C = S.countSetup;
+  if (!C) return '<div class="card"><h2>' + T('先导入盘点文件','First, import the count file') + '</h2><button class="pri" data-a="import">' + T('导入文件','Import a file') + '</button></div>';
+  var d = S.countDraft || {}, sh = d['cn-shift'] || 'Night';
+  var h = '<div class="card"><h2>' + T('这次盘点','This count') + '</h2><div class="row"><label>' + T('营业日','Business day') + '<input class="cn" id="cn-date" type="date" value="' + esc(d['cn-date'] || today()) + '"></label>'
+    + '<label>' + T('班次','Shift') + '<select class="cn" id="cn-shift"><option' + (sh === 'Day' ? ' selected' : '') + '>Day</option><option' + (sh === 'Night' ? ' selected' : '') + '>Night</option></select></label></div>'
+    + '<p class="mut sm">' + T('班次结束、补货之前盘。夜班过了午夜，营业日还是开始那天。什么都没有就填 0；空着 = 没盘。','Count at the end of the shift, before restocking. A night shift past midnight keeps the day it started. If there is none, type 0; blank = not counted.') + '</p></div>';
+  C.items.forEach(function(it, i){
+    h += '<div class="card"><h2>' + esc(it.plu) + '</h2><div class="row">';
+    it.forms.forEach(function(f, k){
+      if (f.kind === 'pack') h += cnBox(cnId(i, k, 'n'), esc(f.label) + T(' 几箱',' packs'), '1');
+      else h += cnBox(cnId(i, k, 'n'), esc(f.label) + (f.kind === 'keg' ? T(' 整桶',' full kegs') : T(' 整瓶',' full bottles')), '1') + cnBox(cnId(i, k, 'o'), T('开着的还剩几成（0-9）','Open one, tenths left (0-9)'), '1', 9);
+    });
+    if (it.loose) h += cnBox(cnId(i, 'x', 's'), T('散的（单瓶 / 单罐）','Loose (single bottles / cans)'), '1');
+    h += '</div></div>';
+  });
+  if (cnWarn) { var r = readCount(); h += '<div class="warn">' + T('还有 ' + r.skipped.length + ' 项空着没盘：','Still blank, not counted: ') + esc(r.skipped.join(', ')) + T('。真的没盘就再按一次；有货没有就填 0。','. If they really were not counted, tap again; if there is none, type 0.') + '</div>'; }
+  return h + '<div class="card"><button class="pri" data-a="count-send">' + T('交给会计','Send to the accountant') + '</button> <button data-a="count-clear">' + T('清空重填','Clear') + '</button><p class="sm">' + driveHint() + '</p></div>';
+}
+function cnVal(id, whole){
+  var raw = (S.countDraft || {})[id];
+  if (raw === undefined || raw === '') return null;
+  var v = Number(raw);
+  if (!(v >= 0) || (whole && v % 1)) throw new Error(T('数字不对：','Not a right number: ') + esc(raw));
+  return v;
+}
+function readCount(){
+  var d = S.countDraft || {}, C = S.countSetup, items = [], skipped = [];
+  var day = d['cn-date'] || today(), shift = d['cn-shift'] || 'Night';
+  if (!/^20\d\d-\d\d-\d\d$/.test(day)) throw new Error(T('先选营业日','choose the business day first'));
+  C.items.forEach(function(it, i){
+    var parts = [], any = false, total = 0;
+    it.forms.forEach(function(f, k){
+      var n = cnVal(cnId(i, k, 'n')), o = f.kind === 'pack' ? null : cnVal(cnId(i, k, 'o'), true);
+      if (n === null && o === null) return;
+      if (o !== null && o > 9) throw new Error(esc(it.plu) + T('：开着的只能填 0 到 9 成',': the open one is 0 to 9 tenths'));
+      any = true;
+      parts.push({label: f.label, units: f.units, kind: f.kind, n: n || 0, open: o || 0});
+      total += (n || 0) * f.units + (o || 0) / 10 * f.units;
+    });
+    var s = it.loose ? cnVal(cnId(i, 'x', 's')) : null;
+    if (s !== null) { any = true; total += s; }
+    if (!any) { skipped.push(it.plu); return; }
+    items.push({plu: it.plu, total: Math.round(total * 1000) / 1000, parts: parts, loose: s || 0});
+  });
+  return {date: day, shift: shift, items: items, skipped: skipped};
+}
+function sendCount(){
+  var r = readCount(), C = S.countSetup;
+  if (!r.items.length) throw new Error(T('一项都没填','nothing is filled in'));
+  if (r.skipped.length && !cnWarn) { cnWarn = true; render(); window.scrollTo(0, document.body.scrollHeight); return; }
+  var co = C.company.replace(/[^A-Za-z0-9]+/g, '_');
+  var body = {kind:'count', app_version: APP_VERSION, company: C.company, setup_made: C.made, date: r.date, shift: r.shift, by: who(), made_at: nowStr(), items: r.items, skipped: r.skipped};
+  var name = 'count_' + co + '_' + r.date + '_' + r.shift + '_' + nowStr().replace(/[-: ]/g, '') + '.json', text = sealed(body);
+  S.counts.push({name: name, text: text, date: r.date, shift: r.shift, n: r.items.length, skipped: r.skipped.length, at: nowStr()});
+  S.counts = S.counts.slice(-60); S.countDraft = {}; cnWarn = false; save();
+  give(name, text); tab = 'counted'; render();
+}
+function vCounted(){
+  var L = (S.counts || []).slice().reverse();
+  if (!L.length) return '<div class="card"><p class="mut">' + T('还没有盘点记录。','No counts yet.') + '</p></div>';
+  return '<div class="card"><h2>' + T('这台手机盘过的','Counted on this device') + '</h2><div class="tw"><table><tr><th>' + T('营业日','Day') + '</th><th>' + T('班次','Shift') + '</th><th class="n">' + T('项','PLUs') + '</th><th>' + T('没盘','Blank') + '</th><th></th></tr>'
+    + L.map(function(x, i){ return '<tr><td>' + esc(x.date) + '</td><td>' + esc(x.shift) + '</td><td class="n">' + x.n + '</td><td class="n">' + x.skipped + '</td><td><button data-a="count-resend" data-id="' + esc(x.name) + '">' + T('再交一次','Send again') + '</button></td></tr>'; }).join('')
+    + '</table></div><p class="sm">' + driveHint() + '</p></div>';
+}
 function vMore(){
   var co = S.role === 'boss' ? '<div class="card"><h2>' + T('公司','Company') + '</h2><p>' + T('现在：','Now: ') + '<b>' + esc(S.setup ? S.setup.company : T('（还没有）','(none yet)')) + '</b></p>'
     + (others().length ? '<p class="mut sm">' + T('这台设备上的其他公司（资料都在，换过去就接着用）：','Other companies on this device (their data is kept; switch to carry on):') + '</p>'
@@ -737,6 +808,10 @@ function importText(text, name){
     if (S.setup && bco && bco !== S.setup.company) localStorage.setItem(CO_KEY + S.setup.company, JSON.stringify(S));   // another company's backup: keep this one
     if (bco) localStorage.removeItem(CO_KEY + bco);
     var keep = S.lang; S = Object.assign(blank(), o.data); S.lang = keep; save(); render(); return T('已还原备份 ','Backup restored ') + esc(o.made) + (bco ? ' · ' + esc(bco) : ''); }
+  if (o.kind === 'count_setup') {
+    S.countSetup = o; S.countDraft = {}; cnWarn = false; S.role = 'count'; save(); tab = 'count'; render();
+    return T('已导入盘点文件：','Count file imported: ') + esc(o.company) + ' · ' + o.items.length + T(' 项',' PLUs');
+  }
   throw new Error(T('看不懂这个文件','not a file this app knows'));
 }
 function calc(){
@@ -845,6 +920,9 @@ document.addEventListener('click', function(ev){
       S.setup.employees.push({name: nm, type: ty, rate: ty === 'hr' ? pv2 : 0, salary: ty === 'sal' ? pv2 : 0, hired: document.getElementById('n-hired').value, vacPct: 0.04, added_in_app: {at: nowStr(), by: who()}}); save(); render(); }
     else if (a === 'backup') give('payroll_backup_' + (S.setup ? S.setup.company.replace(/[^A-Za-z0-9]+/g, '_') + '_' : '') + today() + '.json', JSON.stringify({kind:'backup', made: nowStr(), data: S}));
     else if (a === 'co') { switchTo(b.getAttribute('data-c')); render(); alertBox(T('已换到 ','Now on ') + esc(S.setup ? S.setup.company : '')); }
+    else if (a === 'count-send') sendCount();
+    else if (a === 'count-clear') { S.countDraft = {}; cnWarn = false; save(); render(); }
+    else if (a === 'count-resend') { var cr = S.counts.filter(function(x){ return x.name === id; })[0]; give(cr.name, cr.text); }
     else if (a === 'docs') pickPhotos();
     else if (a === 'docs-share') shareDocs();
     else if (a === 'docs-clear') { pending = []; render(); }
@@ -852,6 +930,7 @@ document.addEventListener('click', function(ev){
     else if (a === 'switch') { S.role = null; save(); render(); }
   } catch (e) { alertBox(esc(e.message)); }
 });
+document.addEventListener('input', function(ev){ if (ev.target.classList && ev.target.classList.contains('cn')) { S.countDraft = S.countDraft || {}; S.countDraft[ev.target.id] = ev.target.value; cnWarn = false; save(); } });
 document.addEventListener('change', function(ev){ if (ev.target.id === 'selEmp') { selEmp = ev.target.value; render(); } });
 render();
 })();
