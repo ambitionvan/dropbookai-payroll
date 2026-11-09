@@ -286,7 +286,7 @@ var FIRM = 'Joseph Zhu, CPA, CGA';
 'use strict';
 var KEY = 'dbpay.v1';
 var S = load();
-var tab = S.role === 'emp' ? 'my' : S.role === 'count' ? 'count' : 'hours';
+var tab = S.role === 'emp' ? 'my' : S.role === 'count' && !hasCount() ? 'count' : S.setup ? 'home' : 'hours';
 var cnWarn = false;                                          // spot count: some PLUs left blank, the next tap sends anyway
 var selEmp = '';
 var lastRun = null;                                          // the run on screen (before / after posting)
@@ -302,11 +302,11 @@ function others(){ var out = []; try { for (var i = 0; i < localStorage.length; 
 function switchTo(company, setup){
   if (S.setup) localStorage.setItem(CO_KEY + S.setup.company, JSON.stringify(S));      // throws when the device is full: nothing changed
   var old = null; try { old = JSON.parse(localStorage.getItem(CO_KEY + company) || 'null'); } catch (e) {}
-  var lang = S.lang, boss = S.boss;
-  S = Object.assign(blank(), old || {}); S.lang = lang; S.role = 'boss'; S.boss = S.boss || boss;
+  var lang = S.lang, boss = S.boss, me = S.me;
+  S = Object.assign(blank(), old || {}); S.lang = lang; S.role = 'boss'; S.boss = S.boss || boss; S.me = S.me || me;
   if (setup) S.setup = setup;
   localStorage.removeItem(CO_KEY + company);
-  pending = []; save(); tab = 'hours';
+  pending = []; save(); tab = 'home';
 }
 
 // ---------- words
@@ -462,18 +462,28 @@ function render(){
   document.getElementById('foot').textContent = 'DropBookAI · ' + FIRM + ' · ' + T('版本 ','version ') + APP_VERSION + ' · ' + T('资料只存在这台设备上，请定期备份','your data stays on this device -- back it up regularly');
   var tabs = !S.role ? [] : S.role === 'count' ? [['count', T('盘点','Count')], ['counted', T('已盘','Done')], ['more', T('设置','Settings')]] : S.role === 'emp' ? [['my', T('我的工时','My hours')], ['send', T('交给老板','Send to the boss')], ['more', T('设置','Settings')]]
     : [['hours', T('工时','Hours')], ['inbox', T('员工交来的','From employees')], ['pay', T('发工资','Pay run')], ['runs', T('已发','Paid')], ['staff', T('员工','Employees')], ['docs', T('单据','Bills')], ['more', T('备份 / 设置','Backup / settings')]];
+  if (S.setup && (S.role === 'boss' || (S.role === 'count' && hasCount()))) tabs.unshift(['home', T('主页','Home')]);
   document.getElementById('nav').innerHTML = tabs.map(function(t){ return '<button data-t="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('');
   document.getElementById('nav').style.display = tabs.length ? '' : 'none';
   var m = document.getElementById('main');
   if (!S.role) m.innerHTML = vStart();
   else if (S.role === 'boss' && !S.setup && tab !== 'more') m.innerHTML = vNeedSetup();
-  else m.innerHTML = ({my:vMy, send:vSend, hours:vHours, inbox:vInbox, pay:vPay, runs:vRuns, staff:vStaff, docs:vDocs, more:vMore, count:vCount, counted:vCounted}[tab] || vHours)();
+  else m.innerHTML = ({home:vHome, my:vMy, send:vSend, hours:vHours, inbox:vInbox, pay:vPay, runs:vRuns, staff:vStaff, docs:vDocs, more:vMore, count:vCount, counted:vCounted}[tab] || vHours)();
 }
 function vStart(){
   return '<div class="card"><h2>' + T('欢迎','Welcome') + '</h2><p>' + T('这台设备给谁用？','Who uses this device?') + '</p>'
     + '<div class="row"><button class="pri" data-a="role-boss">' + T('老板 / 管工资的人','The owner / whoever runs payroll') + '</button>&nbsp;<button data-a="role-emp">' + T('员工（只填自己的工时）','An employee (my own hours only)') + '</button></div>'
     + '<p style="margin-top:10px"><button data-a="import">' + T('盘点的人：导入盘点文件','Counting stock: import the count file') + '</button></p>'
     + '<p class="mut sm">' + T('iPhone：用 Safari 打开后按「分享 → 添加到主屏幕」，资料才不会被系统清掉。','iPhone: in Safari tap Share → Add to Home Screen, so the phone keeps your data.') + '</p></div>';
+}
+function hasCount(){ return !!(S.setup && S.countSetup && S.countSetup.company === S.setup.company); }
+function vHome(){
+  var big = ' style="display:block;width:100%;padding:22px 12px;font-size:20px;margin:12px 0"', c = hasCount();
+  return '<div class="card"><h2>' + esc(S.setup.company) + '</h2>'
+    + '<button class="pri"' + big + ' data-a="go-pay">1 · ' + T('工资','Payroll') + '</button>'
+    + '<button class="pri"' + big + ' data-a="' + (c ? 'go-count' : 'import') + '">2 · ' + T('盘库存','Count stock') + '</button>'
+    + (c ? '' : '<p class="mut sm">' + T('第一次要导入一次盘点文件（count_setup_公司名.json），以后直接按。','The first time, import the count file (count_setup_<company>.json) once; after that just tap.') + '</p>')
+    + '<button class="pri"' + big + ' data-a="go-docs">3 · ' + T('拍照上传','Photos for the accountant') + '</button></div>';
 }
 function vNeedSetup(){
   return '<div class="card"><h2>' + T('先导入设置文件','First, import the setup file') + '</h2><p>' + T('会计事务所会给你一个 setup_公司名.json（员工、时薪、发薪频率）。','The accounting office gives you setup_<company>.json (employees, pay, how often you pay).') + '</p>'
@@ -782,11 +792,13 @@ function importText(text, name){
   var o = unseal(text);
   if (o.kind === 'setup') {
     if (S.setup && S.setup.company !== o.company) {
-      var was = S.setup.company; switchTo(o.company, o); render();
+      var was = S.setup.company, cs = S.countSetup && S.countSetup.company === o.company ? S : null; switchTo(o.company, o);
+      if (cs && !S.countSetup) { S.countSetup = cs.countSetup; S.counts = cs.counts; S.countDraft = cs.countDraft; save(); }
+      render();
       return T('已换到 ','Now on ') + esc(o.company) + ' · ' + o.employees.length + T(' 位员工',' employee(s)') + '<br>'
         + T(esc(was) + ' 的资料还在这台设备上：「备份 / 设置 → 公司」可以换回去。', 'The data of ' + esc(was) + ' stays on this device: Backup / settings → Company switches back.');
     }
-    S.setup = o; S.role = 'boss'; save(); tab = 'hours'; render(); return T('已导入设置：','Setup imported: ') + esc(o.company) + ' · ' + o.employees.length + T(' 位员工',' employee(s)');
+    S.setup = o; S.role = 'boss'; save(); tab = 'home'; render(); return T('已导入设置：','Setup imported: ') + esc(o.company) + ' · ' + o.employees.length + T(' 位员工',' employee(s)');
   }
   if (o.kind === 'hours') {
     if (S.role !== 'boss') throw new Error(T('工时文件要在老板那边导入','hours files are imported on the owner\'s device'));
@@ -812,6 +824,7 @@ function importText(text, name){
     if (bco) localStorage.removeItem(CO_KEY + bco);
     var keep = S.lang; S = Object.assign(blank(), o.data); S.lang = keep; save(); render(); return T('已还原备份 ','Backup restored ') + esc(o.made) + (bco ? ' · ' + esc(bco) : ''); }
   if (o.kind === 'count_setup') {
+    if (S.setup && S.setup.company !== o.company && localStorage.getItem(CO_KEY + o.company)) switchTo(o.company);
     S.countSetup = o; S.countDraft = {}; cnWarn = false; S.role = 'count'; save(); tab = 'count'; render();
     return T('已导入盘点文件：','Count file imported: ') + esc(o.company) + ' · ' + o.items.length + T(' 项',' PLUs');
   }
@@ -892,7 +905,10 @@ document.addEventListener('click', function(ev){
     if (b.id === 'lang') { S.lang = S.lang === 'en' ? 'zh' : 'en'; save(); render(); return; }
     var a = b.getAttribute('data-a'), id = b.getAttribute('data-id');
     if (!a) return;
-    if (a === 'role-boss') { S.role = 'boss'; tab = 'hours'; save(); render(); }
+    if (a === 'role-boss') { S.role = 'boss'; tab = S.setup ? 'home' : 'hours'; save(); render(); }
+    else if (a === 'go-pay') { S.role = 'boss'; tab = 'hours'; save(); render(); }
+    else if (a === 'go-docs') { S.role = 'boss'; tab = 'docs'; save(); render(); }
+    else if (a === 'go-count') { S.role = 'count'; S.me = S.me || S.boss; tab = 'count'; save(); render(); }
     else if (a === 'role-emp') { S.role = 'emp'; tab = 'my'; save(); render(); }
     else if (a === 'me') { var v = document.getElementById('me').value.trim(); if (!v) throw new Error(T('写名字','type your name')); S.me = v; save(); render(); }
     else if (a === 'add-mine') addRow('emp');
