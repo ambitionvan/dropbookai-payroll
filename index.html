@@ -280,7 +280,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 </script>
 <script>
 var TABLES = {"editions": [{"edition": "T4032BC Jan 2026", "effective": "2026-01-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-jan/t4032bc-january-general-information.html", "added": "2026-10-25 from CRA T4032-BC(E) Rev. 26, January 2026 (read 2026-10-25)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0506, 0], [50363, 0.077, 1330], [100728, 0.105, 4150], [115648, 0.1229, 6220], [140430, 0.147, 9604], [190405, 0.168, 13603], [265545, 0.205, 23428]], "tcp": 13216, "bLow": 0.0506, "bcRedMax": 575, "bcRedLo": 25570, "bcRedHi": 41722, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}, {"edition": "T4032BC Jul 2026", "effective": "2026-07-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-july/t4032bc-july-general-information.html", "added": "2026-10-25 (the DropBookAI v48 numbers = CRA T4032BC July 2026 / T4127 123rd edition; BC lowest rate prorated 6.14%, BC reduction prorated 805 -- proposed changes, per CRA)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0614, 0], [50363, 0.077, 786], [100728, 0.105, 3606], [115648, 0.1229, 5676], [140430, 0.147, 9061], [190405, 0.168, 13059], [265545, 0.205, 22884]], "tcp": 13216, "bLow": 0.0614, "bcRedMax": 805, "bcRedLo": 25570, "bcRedHi": 44952, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}]};
-var APP_VERSION = '2026-11-08 / T4032BC Jul 2026';
+var APP_VERSION = '2026-11-09 / T4032BC Jul 2026';
 var FIRM = 'Joseph Zhu, CPA, CGA';
 (function(){
 'use strict';
@@ -535,7 +535,9 @@ function vSend(){
     + '<p class="mut sm">' + T('用短信、电邮或 AirDrop 发给老板。文件里有一个 SHA-256 指纹：改过一个字老板那边就会知道。','Send it by text, email or AirDrop. The file carries a SHA-256 fingerprint: the boss will see if anything in it was changed.') + '</p></div>';
 }
 // ----- boss: hours
+function noStaff(){ return '<div class="card"><h2>' + T('还没有员工','No employees yet') + '</h2><p>' + T('先到「员工」页加人，然后才能记工时和发工资。','Add people on the Employees tab first; then shifts and pay runs work here.') + '</p></div>'; }
 function vHours(){
+  if (!emps().length) return noStaff();
   var list = active(today());
   if (!selEmp && list.length) selEmp = list[0].name;
   var e = emp(selEmp) || {};
@@ -558,6 +560,7 @@ function vInbox(){
 }
 // ----- boss: pay run
 function vPay(){
+  if (!emps().length) return noStaff();
   var p = lastRun && !lastRun.posted ? {from:lastRun.period_from, to:lastRun.period_to} : nextPeriod();
   var payDate = lastRun && !lastRun.posted ? lastRun.pay_date : p.to;
   var tok = tablesOk(payDate);
