@@ -425,7 +425,7 @@ function periodFor(freq, anchorEnd){
 function iso(y, m, d){ return new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10); }
 // the period after the last one paid (none yet: the one ending around today)
 function nextPeriod(){
-  var f = (S.setup || {}).freq || 'semi', last = S.runs.filter(function(r){ return !r.voided; }).map(function(r){ return r.period_to; }).sort().pop();
+  var f = (S.setup || {}).freq || 'semi', last = S.runs.filter(function(r){ return !r.voided; }).map(function(r){ return r.period_to; }).concat([(S.setup || {}).ytd_through || '']).filter(Boolean).sort().pop();   // 2026-11-21: the office's last period counts too (SFU bi-weekly: after 11-12, not 14 days back from today)
   if (!last) return periodFor(f, today());
   var nx = DBPay.addDays(last, 1);
   if (f === 'semi' || f === 'monthly') return periodFor(f, nx);
