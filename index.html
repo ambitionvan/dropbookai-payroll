@@ -448,6 +448,23 @@ function ytdBefore(payDate){
   });
   return out;
 }
+// 2026-11-21: the vacation bank in days, the same rule as bankpush_payroll.vacation (BC Employment Standards: 2 weeks
+// after 12 months, 3 weeks after 5 years); used = the office's figure for the year + this app's own later pay runs
+function vacEnt(hired, on){ var y = (new Date(on + 'T00:00:00Z') - new Date((hired || on) + 'T00:00:00Z')) / 86400000 / 365.25; return y >= 5 ? 15 : y >= 1 ? 10 : 0; }
+function vacBank(e, on){
+  on = on || today(); var y = on.slice(0, 4), thr = (S.setup || {}).ytd_through || '';
+  var taken = e.vac && e.vac.year === y ? Number(e.vac.taken || 0) : 0;
+  S.runs.forEach(function(r){ if (r.voided || r.pay_date.slice(0, 4) !== y || r.period_to <= thr) return;
+    (r.result.rows || []).forEach(function(x){ if (x.name === e.name) taken += Number(x.vac_days || 0); }); });
+  taken = Math.round(taken * 100) / 100; var ent = vacEnt(e.hired, on);
+  return {entitled: ent, taken: taken, left: Math.round((ent - taken) * 100) / 100};
+}
+function vacLine(b, short){
+  if (!b.entitled) return '<span class="mut sm">' + T('不满 1 年：只拿 4% 假期工资，还没有假期天数','under 1 year: 4% pay only, no days yet') + '</span>';
+  var pct = Math.max(0, Math.min(100, b.taken / b.entitled * 100));
+  return '<b style="font-size:18px' + (b.left < 0 ? ';color:#b91c1c' : '') + '">' + hrs(b.left) + '</b> ' + T('天剩','days left') + (short ? '' : ' <span class="mut sm">· ' + T('今年 ' + b.entitled + ' 天，用了 ' + hrs(b.taken),'of ' + b.entitled + ' this year, ' + hrs(b.taken) + ' used') + '</span>')
+    + '<div style="height:5px;background:#eee;border-radius:3px;margin-top:3px"><div style="height:5px;width:' + pct + '%;background:' + (b.left < 0 ? '#b91c1c' : '#1f6f5c') + ';border-radius:3px"></div></div>';
+}
 function tablesOk(payDate){
   var eds = TABLES.editions.map(function(e){ return e.effective; }).sort(), last = eds[eds.length - 1];
   var due = DBPay.nextUpdateDue(last);
@@ -547,7 +564,7 @@ function dayCards(list, who){
 function vMy(){
   if (!S.me) return '<div class="card"><h2>' + T('你的名字','Your name') + '</h2><p class="mut">' + T('写和老板那边一样的名字。','The name the boss has for you.') + '</p><div class="row"><label>' + T('名字','Name') + '<input id="me"></label><button class="pri" data-a="me">' + T('好','OK') + '</button></div></div>';
   var mine = S.rows.filter(function(r){ return r.emp === S.me; });
-  return myEstimate() + '<div class="card"><h2>' + T('记一天','Add a shift') + '</h2>' + rowForm(null, 'emp') + '<button class="pri" data-a="add-mine">' + T('记下','Save') + '</button></div>'
+  return myEstimate() + myVac() + '<div class="card"><h2>' + T('记一天','Add a shift') + '</h2>' + rowForm(null, 'emp') + '<button class="pri" data-a="add-mine">' + T('记下','Save') + '</button></div>'
     + '<div class="card"><h2>' + T('我记的','My shifts') + '</h2>' + dayCards(mine, 'emp') + '</div>';
 }
 // 2026-11-21 (plan 2d): this period's deductions and take-home pay, estimated on the phone with the same calculation the
@@ -566,7 +583,9 @@ function myEstimate(){
   var M = S.mySetup;
   if (!M) return '<div class="card"><p class="mut sm">' + T('想看这一期大概扣多少、实发多少：请老板在他的 App「员工」页按你名字旁的「估算文件」，发给你，在这里「设置 → 导入」。','To see roughly what this period takes off and what you take home: ask the boss to tap "Estimate file" next to your name (Employees screen of the boss\'s app), send it to you, and import it here (Settings → Import).') + '</p></div>';
   var p = periodFor(M.freq || 'semi', today());
-  if (M.ytd_through && p.to <= M.ytd_through) return '<div class="card"><h2>' + T('这一期','This period') + '</h2><p class="mut">' + T('这一期已经发过工资了：看老板给你的工资单。','This period is already paid: see the payslip from the boss.') + '</p></div>';
+  if (M.ytd_through && p.to <= M.ytd_through) {               // this period is paid: estimate the next one
+    var nx = DBPay.addDays(M.ytd_through, 1), f = M.freq || 'semi';
+    p = (f === 'semi' || f === 'monthly') ? periodFor(f, nx) : {from: nx, to: DBPay.addDays(M.ytd_through, f === 'weekly' ? 7 : 14)}; }
   var mine = S.rows.filter(function(r){ return r.emp === S.me; }), R = myEst(M, mine, p.from, p.to), x = R.rows[0] || {};
   var line = function(a, v, b){ return '<tr' + (b ? ' style="font-weight:700"' : '') + '><td>' + a + '</td><td class="n">' + money(v) + '</td></tr>'; };
   return '<div class="card"><h2>' + T('这一期估算','This period, estimated') + ' <span class="mut sm">' + esc(p.from) + ' – ' + esc(p.to) + '</span></h2>'
@@ -574,9 +593,15 @@ function myEstimate(){
     + '<div class="tw"><table>' + (M.employee.type === 'sal' ? line(T('毛工资','Gross'), x.gross) : line(T('毛工资（含 ' + Math.round((M.employee.vacPct === undefined ? 0.04 : M.employee.vacPct) * 1000) / 10 + '% 假期工资）','Gross (with ' + Math.round((M.employee.vacPct === undefined ? 0.04 : M.employee.vacPct) * 1000) / 10 + '% vacation pay)'), x.gross))
     + line('CPP', x.cpp) + (x.cpp2 ? line('CPP2', x.cpp2) : '') + line('EI', x.ei) + line(T('所得税（联邦 + BC）','Income tax (federal + BC)'), DBPay.r2((x.fed || 0) + (x.bc || 0)))
     + line(T('实发（估算）','Take-home (estimate)'), x.net, true) + '</table></div>'
+
     + ((x.exempt || []).length ? '<p class="sm mut">' + T('不扣：','Not deducted: ') + esc(x.exempt.join(', ')) + '</p>' : '')
     + '<p class="sm mut">' + T('估算：照你在这台手机记的工时、' + esc(R.edition) + ' 扣税表、今年累计到 ' + esc(M.ytd_through || M.made.slice(0, 10)) + '（' + esc(M.company) + '，' + esc(M.made.slice(0, 10)) + ' 的文件）。老板批准的工时和工资单才算数。',
       'An estimate: the hours on this phone, the ' + esc(R.edition) + ' tables, this year so far through ' + esc(M.ytd_through || M.made.slice(0, 10)) + ' (' + esc(M.company) + ', file of ' + esc(M.made.slice(0, 10)) + '). The hours the boss approves and the payslip are what count.') + '</p></div>';
+}
+function myVac(){
+  var M = S.mySetup; if (!M) return '';
+  return '<div class="card"><h2>' + T('我的假期','My vacation') + '</h2>' + (function(){ var e = M.employee, y = today().slice(0, 4), ent = vacEnt(e.hired, today()), tk = e.vac && e.vac.year === y ? Number(e.vac.taken || 0) : 0;
+        return vacLine({entitled: ent, taken: tk, left: Math.round((ent - tk) * 100) / 100}) + '<p class="sm mut">' + T('到老板出这个文件那天（' + esc(M.made.slice(0, 10)) + '）为止。休假要先跟老板说好。','As of the day the boss made this file (' + esc(M.made.slice(0, 10)) + '). Agree days off with the boss first.') + '</p>'; })() + '</div>';
 }
 function vSend(){
   var p = periodFor((S.mySetup || {}).freq || 'semi', today());
@@ -619,6 +644,9 @@ function vPay(){
     + '<div class="row"><label>' + T('工资期 从','Period from') + '<input type="date" id="p-from" value="' + p.from + '"></label><label>' + T('到','to') + '<input type="date" id="p-to" value="' + p.to + '"></label>'
     + '<label>' + T('发薪日','Pay date') + '<input type="date" id="p-pay" value="' + payDate + '"></label></div>'
     + '<div class="mut sm">' + T('年薪员工的奖金：','Bonus for salaried staff: ') + active(p.to).filter(function(e){ return e.type === 'sal'; }).map(function(e){ return '<label>' + esc(e.name) + '<input type="number" step="0.01" class="p-bon" data-n="' + esc(e.name) + '" style="width:110px" placeholder="0"></label>'; }).join('') + '</div>'
+    + '<div class="tw" style="margin-top:8px"><table><tr><th>' + T('假期 Vacation bank','Vacation bank') + '</th><th>' + T('这期休假天','Vacation days this period') + '</th><th>' + T('剩','Left') + '</th></tr>'
+    + active(p.to).map(function(e){ var b = vacBank(e, p.to); return '<tr><td>' + esc(e.name) + '</td><td><input type="number" step="0.5" min="0" class="p-vac" data-n="' + esc(e.name) + '" style="width:80px" placeholder="0" value="' + esc(lastRun && !lastRun.posted && lastRun.inputs[e.name] ? lastRun.inputs[e.name].vac || '' : '') + '"' + (b.entitled ? '' : ' disabled') + '></td><td style="min-width:160px">' + vacLine(b) + '</td></tr>'; }).join('')
+    + '</table><p class="mut sm">' + T('休假那几天不用记工时；这里填天数，从假期里扣。时薪员工的 4% 假期工资每期已经付了，休假当天不再付钱；年薪员工照常发薪。','No shifts for days off: type the days here and they come off the bank. Hourly staff get their 4% vacation pay on every cheque, so a day off is not paid again; salaried staff are paid as usual.') + '</p></div>'
     + (tok.ok ? '' : '<div class="bad">' + T('扣税表过期了（' + tok.due + ' 起 CRA 有新表）：请向会计事务所要新版本，不能算。','The tax tables are out of date (CRA has new ones from ' + tok.due + '): ask the accounting office for the new version.') + '</div>')
     + '<button class="pri" data-a="calc"' + (tok.ok ? '' : ' disabled') + '>' + T('算','Calculate') + '</button></div>';
   if (lastRun) h += runView(lastRun);
@@ -652,8 +680,8 @@ function ytdTable(){
 }
 function vStaff(){
   return '<div class="card"><h2>' + T('员工','Employees') + '</h2><p class="mut sm">' + T('名单和工资由会计事务所的设置文件来。这里改了时薪，导出的 pay run 文件会带上，会计那边会对照。','The list comes from the office\'s setup file. A rate changed here goes out in the pay run file; the office checks it.') + '</p>'
-    + '<div class="tw"><table><tr><th>' + T('姓名','Name') + '</th><th>' + T('类型','Type') + '</th><th class="n">' + T('时薪 / 年薪','Rate / salary') + '</th><th>' + T('入职','Hired') + '</th><th>' + T('离职','Left') + '</th><th></th></tr>'
-    + emps().map(function(e, i){ return '<tr><td>' + esc(e.name) + '</td><td>' + (e.type === 'sal' ? T('年薪','salary') : T('时薪','hourly')) + '</td><td class="n"><input type="number" step="0.01" class="st-pay" data-i="' + i + '" style="width:110px" value="' + esc(e.type === 'sal' ? e.salary : e.rate) + '"></td><td>' + esc(e.hired || '') + '</td><td><input type="date" class="st-left" data-i="' + i + '" value="' + esc(e.left || '') + '"></td><td><button data-a="st-save" data-i="' + i + '">' + T('保存','Save') + '</button> <button data-a="st-my" data-i="' + i + '">' + T('估算文件','Estimate file') + '</button></td></tr>'; }).join('')
+    + '<div class="tw"><table><tr><th>' + T('姓名','Name') + '</th><th>' + T('类型','Type') + '</th><th class="n">' + T('时薪 / 年薪','Rate / salary') + '</th><th>' + T('入职','Hired') + '</th><th>' + T('离职','Left') + '</th><th>' + T('假期','Vacation') + '</th><th></th></tr>'
+    + emps().map(function(e, i){ return '<tr><td>' + esc(e.name) + '</td><td>' + (e.type === 'sal' ? T('年薪','salary') : T('时薪','hourly')) + '</td><td class="n"><input type="number" step="0.01" class="st-pay" data-i="' + i + '" style="width:110px" value="' + esc(e.type === 'sal' ? e.salary : e.rate) + '"></td><td>' + esc(e.hired || '') + '</td><td><input type="date" class="st-left" data-i="' + i + '" value="' + esc(e.left || '') + '"></td><td style="min-width:150px">' + vacLine(vacBank(e), true) + '</td><td><button data-a="st-save" data-i="' + i + '">' + T('保存','Save') + '</button> <button data-a="st-my" data-i="' + i + '">' + T('估算文件','Estimate file') + '</button></td></tr>'; }).join('')
     + '</table></div><h2 style="margin-top:14px">' + T('加新员工','Add an employee') + '</h2><div class="row"><label>' + T('姓名','Name') + '<input id="n-name"></label><label>' + T('类型','Type') + '<select id="n-type"><option value="hr">' + T('时薪','hourly') + '</option><option value="sal">' + T('年薪','salary') + '</option></select></label><label>' + T('时薪 / 年薪','Rate / salary') + '<input type="number" step="0.01" id="n-pay" style="width:110px"></label><label>' + T('入职','Hired') + '<input type="date" id="n-hired"></label><button data-a="st-add">' + T('加入','Add') + '</button></div>'
     + '<p class="mut sm">' + T('新员工的 SIN、TD1、地址交给会计事务所（不在这里输）。','Give a new employee\'s SIN, TD1 and address to the accounting office (not typed here).') + '</p>'
     + '<p class="mut sm">' + T('「估算文件」：只有这一个人的时薪 / 年薪、TD1、今年累计（没有别人、没有 SIN）。发给他本人，他在自己手机导入后，报工时就能看到这期估算的扣款和实发。发完一期工资可以再发一次，累计才是新的。','"Estimate file": only this person\'s rate / salary, TD1 and this year so far (nobody else, no SIN). Send it to that person; after importing it on their phone they see this period\'s estimated deductions and take-home pay as they log hours. Send a new one after a pay run so the year to date is current.') + '</p></div>';
@@ -894,7 +922,10 @@ function calc(){
   if (S.runs.some(function(r){ return !r.voided && r.period_to === to; })) flags.push({bad:true, block:true, text:T('这一期已经发过了','this period is already paid')});
   var list = active(to), inputs = {}, statDate = '', detail = {};
   list.forEach(function(e){
-    if (e.type === 'sal') { var b = document.querySelector('.p-bon[data-n="' + CSS.escape(e.name) + '"]'); inputs[e.name] = {bonus: b && b.value ? b.value : ''}; return; }
+    var vq = document.querySelector('.p-vac[data-n="' + CSS.escape(e.name) + '"]'), vd = vq && vq.value ? vq.value : '';
+    if (vd && (isNaN(+vd) || +vd < 0)) throw new Error(e.name + ': ' + T('休假天数不对','vacation days?'));
+    if (vd && vacBank(e, to).left - +vd < 0) flags.push({bad:true, text: e.name + ': ' + T('休假超过剩下的天数（' + vacBank(e, to).left + ' 天）','vacation days are more than the days left (' + vacBank(e, to).left + ')')});
+    if (e.type === 'sal') { var b = document.querySelector('.p-bon[data-n="' + CSS.escape(e.name) + '"]'); inputs[e.name] = {bonus: b && b.value ? b.value : '', vac: vd}; return; }
     var rows = rowsOf(e.name);
     var inPer = rows.filter(function(r){ return r.date >= from && r.date <= to; });
     var pend = inPer.filter(function(r){ return !r.approved; });
@@ -902,7 +933,7 @@ function calc(){
     var ts = DBPay.timesheet(rows.map(calcRow), from, to, (S.setup.week_start === undefined ? 6 : S.setup.week_start));
     ts.days.forEach(function(d){ if (d.flag) flags.push({bad: d.flag.indexOf('LESS') >= 0, text: e.name + ' ' + d.date + ': ' + (d.flag.indexOf('LESS') >= 0 ? T('手填的加班少于 BC 规定（照 BC 规定算）','the overtime typed in is less than BC requires (paid as BC requires)') : T('手填的加班多于 BC 规定（照手填的付）','the overtime typed in is more than BC requires (paid as typed)'))}); });
     inPer.forEach(function(r){ if (r.stat && !statDate) statDate = r.date; });
-    inputs[e.name] = {reg: ts.reg, ot: ts.ot, dt: ts.dt, stat: ts.stat, bonus: ts.bonus || '', pay: ts.pay};
+    inputs[e.name] = {reg: ts.reg, ot: ts.ot, dt: ts.dt, stat: ts.stat, bonus: ts.bonus || '', pay: ts.pay, vac: vd};
     detail[e.name] = ts;
   });
   var result = DBPay.compute(TABLES, list, inputs, P_OF[S.setup.freq], statDate, pay, ytdBefore(pay));
@@ -980,10 +1011,10 @@ document.addEventListener('click', function(ev){
       var o = JSON.parse(body); o.sha256 = sha256(body);
       give('hours_' + S.me.replace(/[^A-Za-z0-9]+/g, '_') + '_' + f + '_' + t + '.json', JSON.stringify({sha256: o.sha256, body: body}));
     }
-    else if (a === 'st-my') { var e7 = emps()[+b.getAttribute('data-i')], t7 = today(), Y7 = ytdBefore(t7 + 'T')[e7.name] || {};
+    else if (a === 'st-my') { var e7 = emps()[+b.getAttribute('data-i')], t7 = today(), Y7 = ytdBefore(t7.slice(0, 4) + '-12-31T')[e7.name] || {};   // every run of the year in this app, a later pay date too
       var thr7 = [(S.setup || {}).ytd_through || ''].concat(S.runs.filter(function(r){ return !r.voided && r.pay_date.slice(0, 4) === t7.slice(0, 4); }).map(function(r){ return r.period_to; })).sort().pop();
       var o7 = {kind: 'my_setup', company: S.setup.company, made: nowStr(), by: who(), freq: S.setup.freq, week_start: S.setup.week_start,
-        employee: JSON.parse(JSON.stringify(e7)), ytd: {year: t7.slice(0, 4), gross: Y7.gross || 0, cpp: Y7.cpp || 0, cpp2: Y7.cpp2 || 0, ei: Y7.ei || 0}, ytd_through: thr7 || ''};
+        employee: Object.assign(JSON.parse(JSON.stringify(e7)), {vac: {year: t7.slice(0, 4), taken: vacBank(e7, t7).taken}}), ytd: {year: t7.slice(0, 4), gross: Y7.gross || 0, cpp: Y7.cpp || 0, cpp2: Y7.cpp2 || 0, ei: Y7.ei || 0}, ytd_through: thr7 || ''};
       give('my_' + e7.name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') + '.json', sealed(o7), 'application/json'); }
     else if (a === 'import') pick('.json,application/json', function(text, name){ try { alertBox(importText(text, name)); } catch (e) { alertBox(esc(name) + ': ' + esc(e.message)); } });
     else if (a === 'calc') calc();
