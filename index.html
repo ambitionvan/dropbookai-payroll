@@ -486,6 +486,7 @@ function render(){
   if (!S.role) m.innerHTML = vStart();
   else if (S.role === 'boss' && !S.setup && tab !== 'more') m.innerHTML = vNeedSetup();
   else m.innerHTML = ({home:vHome, my:vMy, send:vSend, hours:vHours, inbox:vInbox, pay:vPay, runs:vRuns, staff:vStaff, docs:vDocs, more:vMore, count:vCount, counted:vCounted}[tab] || vHours)();
+  try { liveEst(); } catch (e) {}
 }
 function vStart(){
   return '<div class="card"><h2>' + T('欢迎','Welcome') + '</h2><p>' + T('这台设备给谁用？','Who uses this device?') + '</p>'
@@ -564,7 +565,7 @@ function dayCards(list, who){
 function vMy(){
   if (!S.me) return '<div class="card"><h2>' + T('你的名字','Your name') + '</h2><p class="mut">' + T('写和老板那边一样的名字。','The name the boss has for you.') + '</p><div class="row"><label>' + T('名字','Name') + '<input id="me"></label><button class="pri" data-a="me">' + T('好','OK') + '</button></div></div>';
   var mine = S.rows.filter(function(r){ return r.emp === S.me; });
-  return myEstimate() + myVac() + '<div class="card"><h2>' + T('记一天','Add a shift') + '</h2>' + rowForm(null, 'emp') + '<button class="pri" data-a="add-mine">' + T('记下','Save') + '</button></div>'
+  return myEstimate() + myVac() + '<div class="card"><h2>' + T('记一天','Add a shift') + '</h2>' + rowForm(null, 'emp') + '<button class="pri" data-a="add-mine">' + T('记下','Save') + '</button><div id="live"></div></div>'
     + '<div class="card"><h2>' + T('我记的','My shifts') + '</h2>' + dayCards(mine, 'emp') + '</div>';
 }
 // 2026-11-21 (plan 2d): this period's deductions and take-home pay, estimated on the phone with the same calculation the
@@ -579,10 +580,53 @@ function myEst(M, rows, from, to){
   ytd[e.name] = {gross: +Y.gross || 0, cpp: +Y.cpp || 0, cpp2: +Y.cpp2 || 0, ei: +Y.ei || 0};
   return DBPay.compute(TABLES, [e], inputs, P_OF[M.freq || 'semi'], statDate, to, ytd);
 }
+// 2026-11-21 (user: type the hours, see right away what CPP / EI / tax come off and what is take-home, changing with the
+// hours): the pay period holding a day -- bi-weekly / weekly counted on from the office's last period (or this app's)
+function periodAt(f, last, day){
+  if (f === 'semi' || f === 'monthly' || !last) return periodFor(f || 'semi', day);
+  var n = f === 'weekly' ? 7 : 14, start = DBPay.addDays(last, 1);
+  var k = Math.floor((new Date(day + 'T00:00:00Z') - new Date(start + 'T00:00:00Z')) / 86400000 / n);
+  var from = DBPay.addDays(start, k * n); return {from: from, to: DBPay.addDays(from, n - 1)};
+}
+function formRow(who){                                         // the shift being typed (null while incomplete)
+  var g = function(id){ var x = document.getElementById(id); return x ? x.value : ''; };
+  if (!g('f-date') || !g('f-start') || !g('f-end')) return null;
+  var r = {id: '__typing', date: g('f-date'), start: g('f-start'), end: g('f-end'), 'break': Number(g('f-break') || 0), ot_from: g('f-otf'), ot_to: g('f-ott'),
+    stat: !!(document.getElementById('f-stat') || {}).checked};
+  if (who === 'boss') { r.rate = Number(g('f-rate') || 0); r.bonus = Number(g('f-bonus') || 0); }
+  if (!!r.ot_from !== !!r.ot_to) { r.ot_from = ''; r.ot_to = ''; }
+  return r;
+}
+function liveEst(){
+  var box = document.getElementById('live'); if (!box) return;
+  var who = S.role === 'boss' ? 'boss' : 'emp', M, rows, last;
+  if (who === 'boss') { var e = emp(selEmp); if (!e || e.type === 'sal') { box.innerHTML = ''; return; }
+    last = S.runs.filter(function(r){ return !r.voided; }).map(function(r){ return r.period_to; }).concat([(S.setup || {}).ytd_through || '']).filter(Boolean).sort().pop();
+    M = {employee: e, freq: S.setup.freq, week_start: S.setup.week_start, ytd: null}; rows = rowsOf(e.name);
+  } else { M = S.mySetup; if (!M || M.employee.type === 'sal') { box.innerHTML = ''; return; } last = M.ytd_through; rows = S.rows.filter(function(r){ return r.emp === S.me; }); }
+  var t = formRow(who), day = t ? t.date : today(), p = periodAt(M.freq || 'semi', last, day);
+  if (who === 'boss') { var Y = ytdBefore(DBPay.addDays(p.to, 1))[M.employee.name] || {}; M.ytd = {year: p.to.slice(0, 4), gross: Y.gross, cpp: Y.cpp, cpp2: Y.cpp2, ei: Y.ei}; }
+  var paid = last && p.to <= last;
+  var base = myEst(M, rows, p.from, p.to).rows[0] || {}, inPer = rows.filter(function(r){ return r.date >= p.from && r.date <= p.to; }).length;
+  var withT = t && !paid ? (myEst(M, rows.concat([t]), p.from, p.to).rows[0] || {}) : null;
+  var tax = function(x){ return DBPay.r2((x.fed || 0) + (x.bc || 0)); }, d = function(a, b){ return DBPay.r2((a || 0) - (b || 0)); };
+  var col = function(x){ return [x.gross, x.cpp, (x.cpp2 || 0), x.ei, tax(x), x.net]; };
+  var head = '<tr><th></th><th class="n">' + T('毛工资','Gross') + '</th><th class="n">CPP</th><th class="n">CPP2</th><th class="n">EI</th><th class="n">' + T('所得税','Tax') + '</th><th class="n">' + T('实发','Take-home') + '</th></tr>';
+  var tr = function(label, v, bold){ return '<tr' + (bold ? ' style="font-weight:700"' : '') + '><td>' + label + '</td>' + v.map(function(n){ return '<td class="n">' + money(n) + '</td>'; }).join('') + '</tr>'; };
+  var h = '<div style="margin-top:10px;padding:10px;border-radius:8px;background:#eef6f3"><b>' + T('这一期 ','This period ') + esc(p.from) + ' – ' + esc(p.to) + '</b> <span class="mut sm">' + (paid ? T('（已经发过工资）',' (already paid)') : T('（已记 ' + inPer + ' 天）',' (' + inPer + ' shift(s) saved)')) + '</span>'
+    + '<div class="tw"><table>' + head + tr(T('已记的','Saved so far'), col(base));
+  if (withT) {
+    var dd = col(withT).map(function(v, i){ return d(v, col(base)[i]); });
+    h += tr(T('上面这一天（' + hrs(DBPay.rowMinutes(t) / 60) + ' h）','The shift above (' + hrs(DBPay.rowMinutes(t) / 60) + ' h)'), dd) + tr(T('加上这一天，这一期','With it, this period'), col(withT), true);
+  }
+  h += '</table></div><div class="mut sm">' + (withT ? T('上面这一天还没存：按「记下」才算进去。','The shift above is not saved yet: it counts once you tap Save.') + ' ' : '')
+    + T('源扣款 = CPP + CPP2 + EI + 所得税（雇主另外也付 CPP 和 EI）。估算，用 ','Source deductions = CPP + CPP2 + EI + income tax (the employer pays its own CPP and EI on top). An estimate with the ') + esc(DBPay.tableFor(TABLES, p.to).edition) + T(' 扣税表和今年累计；发工资那天才是准数。',' tables and the year so far; the pay run is the real figure.') + '</div></div>';
+  box.innerHTML = h;
+}
 function myEstimate(){
   var M = S.mySetup;
   if (!M) return '<div class="card"><p class="mut sm">' + T('想看这一期大概扣多少、实发多少：请老板在他的 App「员工」页按你名字旁的「估算文件」，发给你，在这里「设置 → 导入」。','To see roughly what this period takes off and what you take home: ask the boss to tap "Estimate file" next to your name (Employees screen of the boss\'s app), send it to you, and import it here (Settings → Import).') + '</p></div>';
-  var p = periodFor(M.freq || 'semi', today());
+  var p = periodAt(M.freq || 'semi', M.ytd_through, today());
   if (M.ytd_through && p.to <= M.ytd_through) {               // this period is paid: estimate the next one
     var nx = DBPay.addDays(M.ytd_through, 1), f = M.freq || 'semi';
     p = (f === 'semi' || f === 'monthly') ? periodFor(f, nx) : {from: nx, to: DBPay.addDays(M.ytd_through, f === 'weekly' ? 7 : 14)}; }
@@ -621,7 +665,7 @@ function vHours(){
     + '<span class="mut sm" style="margin:0 0 14px 4px">' + (e.type === 'sal' ? T('年薪 $','salary $') + money(e.salary) + T('（年薪员工不用填工时；奖金在「发工资」里填）',' (salaried: no hours needed; a bonus goes on the pay run)') : T('时薪 $','rate $') + money(e.rate)) + '</span></div></div>';
   if (e.type === 'sal') return head;
   return head + '<div class="card"><h2>' + T('记一天','Add a shift') + '</h2>' + rowForm({date: today(), start:'09:00', end:'17:30', 'break':30, rate:e.rate}, 'boss')
-    + '<button class="pri" data-a="add-boss">' + T('记下（老板填的直接算已批准）','Save (the boss\'s own entries count as approved)') + '</button></div>'
+    + '<button class="pri" data-a="add-boss">' + T('记下（老板填的直接算已批准）','Save (the boss\'s own entries count as approved)') + '</button><div id="live"></div></div>'
     + '<div class="card"><h2>' + T('记录','Shifts') + '</h2>' + dayCards(rowsOf(selEmp), 'boss') + '</div>';
 }
 // ----- boss: from employees
@@ -1041,7 +1085,8 @@ document.addEventListener('click', function(ev){
   } catch (e) { alertBox(esc(e.message)); }
 });
 document.addEventListener('input', function(ev){ if (ev.target.classList && ev.target.classList.contains('cn')) { S.countDraft = S.countDraft || {}; S.countDraft[ev.target.id] = ev.target.value; cnWarn = false; save(); } });
-document.addEventListener('change', function(ev){ if (ev.target.id === 'selEmp') { selEmp = ev.target.value; render(); } });
+document.addEventListener('change', function(ev){ if (ev.target.id === 'selEmp') { selEmp = ev.target.value; render(); } else if (ev.target.id && ev.target.id.indexOf('f-') === 0) liveEst(); });
+document.addEventListener('input', function(ev){ if (ev.target.id && ev.target.id.indexOf('f-') === 0) liveEst(); });
 render();
 })();
 </script>
