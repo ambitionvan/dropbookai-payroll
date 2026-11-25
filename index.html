@@ -283,6 +283,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 var TABLES = {"editions": [{"edition": "T4032BC Jan 2026", "effective": "2026-01-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-jan/t4032bc-january-general-information.html", "added": "2026-10-25 from CRA T4032-BC(E) Rev. 26, January 2026 (read 2026-10-25)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0506, 0], [50363, 0.077, 1330], [100728, 0.105, 4150], [115648, 0.1229, 6220], [140430, 0.147, 9604], [190405, 0.168, 13603], [265545, 0.205, 23428]], "tcp": 13216, "bLow": 0.0506, "bcRedMax": 575, "bcRedLo": 25570, "bcRedHi": 41722, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}, {"edition": "T4032BC Jul 2026", "effective": "2026-07-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-july/t4032bc-july-general-information.html", "added": "2026-10-25 (the DropBookAI v48 numbers = CRA T4032BC July 2026 / T4127 123rd edition; BC lowest rate prorated 6.14%, BC reduction prorated 805 -- proposed changes, per CRA)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0614, 0], [50363, 0.077, 786], [100728, 0.105, 3606], [115648, 0.1229, 5676], [140430, 0.147, 9061], [190405, 0.168, 13059], [265545, 0.205, 22884]], "tcp": 13216, "bLow": 0.0614, "bcRedMax": 805, "bcRedLo": 25570, "bcRedHi": 44952, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}, {"edition": "T4032BC Jan 2027", "effective": "2027-01-01", "PD": {"cppR": 0.0575, "cppEx": 3500.0, "cppMax": 4209.0, "ympe": 76700.0, "cppBaseR": 0.0475, "cppBaseMax": 3477.0, "eiR": 0.0164, "eiMax": 1161.12, "eiEr": 1.4, "fed": [[0.0, 0.14, 0.0], [60044.0, 0.205, 3903.0], [120088.0, 0.26, 10508.0], [186157.0, 0.29, 16092.0], [265203.0, 0.33, 26701.0]], "bpaf": 16879.0, "cea": 1540.0, "fLow": 0.14, "bc": [[0.0, 0.056, 0.0], [50363.0, 0.077, 1058.0], [100728.0, 0.105, 3878.0], [115648.0, 0.1229, 5948.0], [140430.0, 0.147, 9332.0], [190405.0, 0.168, 13331.0], [265545.0, 0.205, 23156.0]], "tcp": 13216.0, "bLow": 0.056, "bcRedMax": 690.0, "bcRedLo": 25570.0, "bcRedHi": 41722.0, "bcRedR": 0.0356, "yampe": 87400.0, "cpp2R": 0.04, "cpp2Max": 428.0, "bpafMin": 15214.0, "bpafLo": 186157.0, "bpafHi": 265203.0}, "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4127-payroll-deductions-formulas/t4127-jan.html", "added": "2026-11-21 08:36 by joseph (read from CRA by the Update button, files kept in C:\\Users\\User\\Downloads\\Bank Push Bookkeeping\\engine\\cra_t4127\\2027-01-01)"}]};
 var APP_VERSION = '2026-11-24 / T4032BC Jan 2027';
 var FIRM = 'Joseph Zhu, CPA, CGA';
+var OFFICE_KEY = {"spki": "MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAi2ZxbVIoDE8n+88TZ31pPGitvj3D0IjCLwguf+ig957kaXvfbkmCy59Htfd5JBn7QcnJ6+CvmPrNT0apI3lbdRUpzoL6sPVzgMh+mVRThYzWdt0WpgF8Olv51yVwvhRtlhMqk7+6jy5QB3UTz6gOJoVfTCnWHggw/qQ3E28jXVUDoDexdH4ohFHhHh85Wu5HXrQrOA+oGgHDLUZfqZT6iLGBkuTiTkd3WLGXW9H9+mJmT4Kpo1TkeZcd1nJ5z8Zob8tNoYTDH86uN+CoXwbmC47FdC1oQmfTgw7yVxhhoUdvPul3UedbbugP89mNO/qhUduA1svuQmjVLeMgjM9j4Chujv4DMj6SR3TXBctMNqphTNNy6VsuEHgB/AGZmiBLGbhC5Fn/vdYX4xVYSxmcx6HSaWE2DxMYuQCsrbigQisbIB24SpygtqCZOEYBtgoVg8FH0bodweZFMABoFTIuLlJUOwU/BJkT6erI1lAzL0rnJsspNicWyHg51dVrE2TtAgMBAAE=", "kid": "fd56186492d00825"};               // 2026-11-24: the accounting office's public key (a SIN is locked with it)
 (function(){
 'use strict';
 var KEY = 'dbpay.v1';
@@ -294,7 +295,7 @@ var lastRun = null;                                          // the run on scree
 var pending = [];                                            // photos picked, not shared yet (this screen only, never stored)
 
 // ---------- storage (this browser only)
-function blank(){ return {lang:'zh', role:null, setup:null, me:'', boss:'', rows:[], subs:[], runs:[], sent:[], countSetup:null, counts:[], countDraft:{}, mySetup:null, remit:null}; }
+function blank(){ return {lang:'zh', role:null, setup:null, me:'', boss:'', rows:[], subs:[], runs:[], sent:[], countSetup:null, counts:[], countDraft:{}, mySetup:null, remit:null, profiles:[], myProfile:null, profileSent:null}; }
 function load(){ try{ var s = JSON.parse(localStorage.getItem(KEY) || 'null'); return s && typeof s === 'object' ? Object.assign(blank(), s) : blank(); }catch(e){ return blank(); } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ alertBox(T('这台设备存不下了：请先做备份。','This device could not save: make a backup now.')); } }
 // more than one company on one device (2026-10-29): the one in use is KEY, the others wait under KEY.co.<company>
@@ -487,7 +488,7 @@ function render(){
   document.getElementById('lang').textContent = S.lang === 'en' ? '中文' : 'EN';
   document.getElementById('co').textContent = S.role === 'count' && S.countSetup ? '· ' + S.countSetup.company : S.setup ? '· ' + S.setup.company : (S.role === 'emp' && S.me ? '· ' + S.me : '');
   document.getElementById('foot').textContent = 'DropBookAI · ' + FIRM + ' · ' + T('版本 ','version ') + APP_VERSION + ' · ' + T('资料只存在这台设备上，请定期备份','your data stays on this device -- back it up regularly');
-  var tabs = !S.role ? [] : S.role === 'count' ? [['count', T('盘点','Count')], ['counted', T('已盘','Done')], ['more', T('设置','Settings')]] : S.role === 'emp' ? [['my', T('我的工时','My hours')], ['send', T('交给老板','Send to the boss')], ['more', T('设置','Settings')]]
+  var tabs = !S.role ? [] : S.role === 'count' ? [['count', T('盘点','Count')], ['counted', T('已盘','Done')], ['more', T('设置','Settings')]] : S.role === 'emp' ? [['my', T('我的工时','My hours')], ['send', T('交给老板','Send to the boss')], ['me', T('我的资料','My details')], ['more', T('设置','Settings')]]
     : [['hours', T('工时','Hours')], ['inbox', T('员工交来的','From employees')], ['pay', T('发工资','Pay run')], ['runs', T('已发','Paid')], ['staff', T('员工','Employees')], ['docs', T('单据','Bills')], ['more', T('备份 / 设置','Backup / settings')]];
   if (S.setup && (S.role === 'boss' || (S.role === 'count' && hasCount()))) tabs.unshift(['home', T('主页','Home')]);
   document.getElementById('nav').innerHTML = tabs.map(function(t){ return '<button data-t="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('');
@@ -495,7 +496,7 @@ function render(){
   var m = document.getElementById('main');
   if (!S.role) m.innerHTML = vStart();
   else if (S.role === 'boss' && !S.setup && tab !== 'more') m.innerHTML = vNeedSetup();
-  else m.innerHTML = ({home:vHome, my:vMy, send:vSend, hours:vHours, inbox:vInbox, pay:vPay, runs:vRuns, staff:vStaff, docs:vDocs, more:vMore, count:vCount, counted:vCounted}[tab] || vHours)();
+  else m.innerHTML = ({home:vHome, my:vMy, send:vSend, hours:vHours, inbox:vInbox, pay:vPay, runs:vRuns, staff:vStaff, docs:vDocs, more:vMore, count:vCount, counted:vCounted, me:vMe}[tab] || vHours)();
   try { liveEst(); } catch (e) {}
 }
 function vStart(){
@@ -507,24 +508,190 @@ function vStart(){
 function hasCount(){ return !!(S.setup && S.countSetup && S.countSetup.company === S.setup.company); }
 function vHome(){
   var big = ' style="display:block;width:100%;padding:22px 12px;font-size:20px;margin:12px 0"', c = hasCount();
-  return '<div class="card"><h2>' + esc(S.setup.company) + '</h2>'
+  return remitBanner() + '<div class="card"><h2>' + esc(S.setup.company) + '</h2>'
     + '<button class="pri"' + big + ' data-a="go-pay">1 · ' + T('工资','Payroll') + '</button>'
     + '<button class="pri"' + big + ' data-a="' + (c ? 'go-count' : 'import') + '">2 · ' + T('盘库存','Count stock') + '</button>'
     + (c ? '' : '<p class="mut sm">' + T('第一次要导入一次盘点文件（count_setup_公司名.json），以后直接按。','The first time, import the count file (count_setup_<company>.json) once; after that just tap.') + '</p>')
+    + ((S.profiles || []).some(function(p){ return p.status === 'pending'; }) ? '<div class="warn" style="font-size:16px">' + T('新员工资料 ' + S.profiles.filter(function(p){ return p.status === 'pending'; }).length + ' 份待批','New employee details to approve: ' + S.profiles.filter(function(p){ return p.status === 'pending'; }).length) + ' <button data-a="go-inbox">' + T('去看','Open') + '</button></div>' : '')
     + '<button class="pri"' + big + ' data-a="go-docs">3 · ' + T('拍照上传','Photos for the accountant') + '</button></div>' + remitCard();
 }
 // 2026-11-21 (plan 2d): source deductions owed to CRA, from the office's file (the books), not from this phone
+// 2026-11-24 (plan item 28 B): days left / days late for each month still owed, the RP number, how to pay, and an
+// iPhone calendar file (a reminder 7 days and 2 days before each due date). The owner pays; the app never pays.
+function dayDiff(a, b){ return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000); }
+function remitOf(){ return S.remit && S.setup && S.remit.company === S.setup.company ? S.remit : null; }
+function remitItems(){
+  var R = remitOf(), t = today(), out = [];
+  if (R) (R.rows || []).forEach(function(r){
+    var left = r.left !== undefined ? Number(r.left) : Number(r.balance);
+    if (!r.due || !(left > 0.005)) return;
+    out.push({month: r.month, amount: left, due: r.due, days: dayDiff(t, r.due), src: 'office'});
+  });
+  var last = R ? (R.last_run || '') : '', by = {};                // pay runs on this phone the office has not booked yet
+  S.runs.forEach(function(x){ if (x.voided || !x.remit_due || x.pay_date <= last || !(Number((x.result || {}).remit) > 0)) return;
+    var k = x.remit_due; by[k] = by[k] || {month: x.pay_date.slice(0, 7), amount: 0, due: k, days: dayDiff(t, k), src: 'phone', runs: []};
+    by[k].amount = Math.round((by[k].amount + Number(x.result.remit)) * 100) / 100; by[k].runs.push(x.no); });
+  Object.keys(by).forEach(function(k){ var o = out.filter(function(x){ return x.due === k; })[0];   // same due date: add it to the office's month
+    if (o) { o.amount = Math.round((o.amount + by[k].amount) * 100) / 100; o.phone = by[k].amount; o.runs = by[k].runs; } else out.push(by[k]); });
+  return out.sort(function(a, b){ return a.due < b.due ? -1 : 1; });
+}
+function daysWord(d){ return d < 0 ? T('逾期 ' + (-d) + ' 天', (-d) + ' day' + (d === -1 ? '' : 's') + ' late') : d === 0 ? T('今天截止','due today') : T('还剩 ' + d + ' 天', d + ' day' + (d === 1 ? '' : 's') + ' left'); }
+function daysStyle(d){ return d < 0 ? 'bad' : d <= 7 ? 'warn' : ''; }
+function remitBanner(){
+  var L = remitItems().filter(function(x){ return x.days <= 7; }); if (!L.length) return '';
+  var late = L.filter(function(x){ return x.days < 0; }), x = L[0];
+  return '<div class="' + (late.length ? 'bad' : 'warn') + '" style="font-size:16px"><b>' + (late.length ? T('源扣款逾期了：','Source deductions are late: ') : T('源扣款快到期：','Source deductions due soon: ')) + '</b>'
+    + '$' + money(x.amount) + ' · ' + T('截止 ','due ') + esc(x.due) + ' · <b>' + daysWord(x.days) + '</b>' + (L.length > 1 ? T('（还有 ' + (L.length - 1) + ' 笔，见下面）',' (' + (L.length - 1) + ' more below)') : '') + '</div>';
+}
+function howToPay(rp){
+  return '<details style="margin-top:8px"' + (rp ? '' : ' open') + '><summary><b>' + T('怎么交','How to pay') + '</b></summary><ul class="sm" style="padding-left:18px;margin:6px 0">'
+    + '<li>' + T('你的 CRA 工资账号（RP 号）：','Your CRA payroll account (RP number): ') + (rp ? '<b style="font-family:monospace;font-size:15px">' + esc(rp) + '</b>' : '<b style="color:#b91c1c">' + T('会计还没填，请问会计','not filled in by the office yet: ask the accountant') + '</b>') + '</li>'
+    + '<li>' + T('网上银行：加收款人，名字一般是「Federal – Payroll deductions – Regular / Current」或「CRA payroll」（各银行写法不同，搜 payroll）；账号填上面的 RP 号；写明是哪个月的扣款。',
+      'Online banking: add the payee, usually called "Federal - Payroll deductions - Regular / Current" or "CRA payroll" (each bank names it a little differently: search for payroll); the account number is the RP number above; say which month it is for.') + '</li>'
+    + '<li>' + T('或者 CRA My Business Account → 付款（My Payment / 预先授权扣款）。','Or CRA My Business Account → payments (My Payment / pre-authorized debit).') + '</li>'
+    + '<li>' + T('CRA 要在截止日<b>当天或以前收到</b>：网银请提早 2–3 个工作日交。逾期 CRA 会罚款和收利息。','CRA must <b>receive</b> it by the due date: pay 2-3 business days early by online banking. Late = CRA penalties and interest.') + '</li>'
+    + '<li>' + T('钱由你自己交，App 和会计都不会替你付。交了以后，会计记账、给你新文件，这里才会变成已交。','You pay it yourself: neither the app nor the office pays for you. Once the office books it and sends a new file, it shows as paid here.') + '</li></ul></details>';
+}
 function remitCard(){
-  var R = S.remit;
-  if (!R || !S.setup || R.company !== S.setup.company) return '<div class="card"><h2>' + T('要交给 CRA 的源扣款','Source deductions owed to CRA') + '</h2><p class="mut sm">' + T('会计事务所给你一个 remit_status_公司名.json，在「备份 / 设置 → 导入」导入，这里就看得到还欠多少、哪天截止。','The office gives you remit_status_<company>.json: import it (Backup / settings → Import) and this shows what is owed and when.') + '</p></div>';
-  var late = (R.rows || []).some(function(r){ return r.late; });
-  return '<div class="card"><h2>' + T('要交给 CRA 的源扣款','Source deductions owed to CRA') + '</h2>'
-    + '<p style="font-size:20px;margin:6px 0">' + T('还欠 ','Owing ') + '<b>' + money(R.owing) + '</b>' + (R.next_due ? ' · ' + T('截止 ','due ') + '<b>' + esc(R.next_due) + '</b>' : '') + '</p>'
-    + (late ? '<p style="color:#b91c1c"><b>' + T('有逾期的月份：请尽快交（CRA 会罚款和收利息）','A month is late: please pay soon (CRA charges penalties and interest)') + '</b></p>' : '')
-    + '<div class="tw"><table><tr><th>' + T('月份','Month') + '</th><th class="n">' + T('该交','Owed') + '</th><th class="n">' + T('已交','Sent') + '</th><th class="n">' + T('还欠','Owing') + '</th><th>' + T('截止','Due') + '</th></tr>'
-    + (R.rows || []).slice(-6).map(function(r){ return '<tr' + (r.late ? ' style="color:#b91c1c"' : '') + '><td>' + esc(r.month) + '</td><td class="n">' + money(r.owed) + '</td><td class="n">' + money(r.paid) + '</td><td class="n">' + money(r.balance) + '</td><td>' + esc(r.due || '') + '</td></tr>'; }).join('') + '</table></div>'
-    + '<p class="sm mut">' + T('截至 ' + esc(R.made) + '，照会计的账（最后一次发薪 ' + esc(R.last_run || '-') + '）。这台手机上之后发的工资还没算进去；交了钱，等会计记账后的新文件才会变。',
-      'As of ' + esc(R.made) + ', from the office\'s books (last pay run ' + esc(R.last_run || '-') + '). Pay runs on this phone after that are not in it yet; a payment shows once the office has booked it and sends a new file.') + '</p></div>';
+  var R = remitOf(), L = remitItems();
+  var h = '<div class="card"><h2>' + T('要交给 CRA 的源扣款','Source deductions owed to CRA') + '</h2>';
+  if (!R && !L.length) return h + '<p class="mut sm">' + T('会计事务所给你一个 remit_status_公司名.json，在「备份 / 设置 → 导入」导入，这里就看得到还欠多少、哪天截止。','The office gives you remit_status_<company>.json: import it (Backup / settings → Import) and this shows what is owed and when.') + '</p>' + howToPay('') + '</div>';
+  if (!L.length) h += '<p class="okt" style="font-size:18px">' + T('现在没有欠 CRA 的源扣款','Nothing owed to CRA right now') + '</p>';
+  else h += L.map(function(x){ var st = daysStyle(x.days);
+    return '<div class="' + (st || 'day') + '" style="font-size:15px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span><b style="font-size:19px">$' + money(x.amount) + '</b> · ' + esc(x.month) + T(' 的扣款',' deductions') + '</span><b>' + daysWord(x.days) + '</b></div>'
+      + '<div class="sm">' + T('截止 ','due ') + '<b>' + esc(x.due) + '</b>' + (x.phone ? ' · <span class="mut">' + T('含这台手机发的 $' + money(x.phone) + '（' + x.runs.join(', ') + '），会计还没记账','includes $' + money(x.phone) + ' paid on this phone (' + x.runs.join(', ') + '), not booked by the office yet') + '</span>' : '') + (x.src === 'phone' ? ' · <span class="mut">' + T('这台手机发的（' + x.runs.join(', ') + '），会计还没记账；以会计的数为准','paid on this phone (' + x.runs.join(', ') + '), not booked by the office yet; the office\'s figure counts') + '</span>' : '') + '</div></div>'; }).join('');
+  if (L.some(function(x){ return x.days >= 0; })) h += '<button class="pri" data-a="remit-cal" style="margin-top:6px">' + T('加到 iPhone 日历（前 7 天、前 2 天提醒）','Add to the iPhone calendar (reminders 7 and 2 days before)') + '</button> <button data-a="remit-cal-share" style="margin-top:6px">' + T('分享日历文件','Share the calendar file') + '</button>';
+  h += howToPay(R ? R.rp : '');
+  if (R) h += '<details class="sm" style="margin-top:6px"><summary>' + T('按月明细（会计的账）','By month (the office\'s books)') + '</summary><div class="tw"><table><tr><th>' + T('月份','Month') + '</th><th class="n">' + T('该交','Owed') + '</th><th class="n">' + T('已交','Sent') + '</th><th class="n">' + T('这个月还欠','Still owing') + '</th><th>' + T('截止','Due') + '</th></tr>'
+    + (R.rows || []).slice(-6).map(function(r){ var left = r.left !== undefined ? r.left : r.balance; return '<tr><td>' + esc(r.month) + '</td><td class="n">' + money(r.owed) + '</td><td class="n">' + money(r.paid) + '</td><td class="n">' + money(left) + '</td><td>' + esc(r.due || '') + '</td></tr>'; }).join('') + '</table></div></details>'
+    + '<p class="sm mut">' + T('截至 ' + esc(R.made) + '，照会计的账（最后一次发薪 ' + esc(R.last_run || '-') + '）。还剩几天按今天算。',
+      'As of ' + esc(R.made) + ', from the office\'s books (last pay run ' + esc(R.last_run || '-') + '). Days left are counted from today.') + '</p>';
+  return h + '</div>';
+}
+// the calendar file: one all-day event per due date still to come, alarms at 9:00 seven days and two days before
+function icsText(s){ return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n'); }
+function remitIcs(){
+  var L = remitItems().filter(function(x){ return x.days >= 0; });
+  if (!L.length) throw new Error(T('没有还没到期的截止日','no due date still to come'));
+  var co = S.setup.company, rp = (remitOf() || {}).rp || '', ymd = function(d){ return d.replace(/-/g, ''); }, stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  var out = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//DropBookAI//Payroll//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  L.forEach(function(x){
+    var title = T('交 CRA 源扣款 $' + money(x.amount) + '（' + co + '）','Pay CRA source deductions $' + money(x.amount) + ' (' + co + ')');
+    var desc = T(x.month + ' 的扣款，截止 ' + x.due + '（CRA 当天要收到，网银提早 2–3 个工作日）。RP 号：' + (rp || '问会计') + '。网银收款人：Federal – Payroll deductions，或 CRA My Business Account。',
+      'Deductions for ' + x.month + ', due ' + x.due + ' (CRA must receive it that day: pay 2-3 business days early). RP number: ' + (rp || 'ask the office') + '. Online banking payee: Federal - Payroll deductions, or CRA My Business Account.');
+    out.push('BEGIN:VEVENT', 'UID:dbpay-remit-' + co.replace(/[^A-Za-z0-9]+/g, '') + '-' + ymd(x.due) + '@dropbookai', 'DTSTAMP:' + stamp,
+      'DTSTART;VALUE=DATE:' + ymd(x.due), 'DTEND;VALUE=DATE:' + ymd(DBPay.addDays(x.due, 1)), 'SUMMARY:' + icsText(title), 'DESCRIPTION:' + icsText(desc), 'TRANSP:TRANSPARENT');
+    [['-P6DT15H', T('7 天后截止','due in 7 days')], ['-P1DT15H', T('2 天后截止','due in 2 days')]].forEach(function(a){
+      out.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'TRIGGER:' + a[0], 'DESCRIPTION:' + icsText(title + ' - ' + a[1]), 'END:VALARM'); });
+    out.push('END:VEVENT');
+  });
+  out.push('END:VCALENDAR');
+  var fold = function(l){ var s = '', n = 0; for (var i = 0; i < l.length; i++) { var c = l.charAt(i), w = unescape(encodeURIComponent(c)).length;   // RFC 5545: 75 octets a line
+    if (n + w > 73) { s += '\r\n '; n = 1; } s += c; n += w; } return s; };
+  return {name: 'CRA_remittance_' + co.replace(/[^A-Za-z0-9]+/g, '_') + '.ics', text: out.map(fold).join('\r\n') + '\r\n', n: L.length};
+}
+function remitCal(share){
+  var c = remitIcs();
+  if (!share && /iPhone|iPad|iPod/.test(navigator.userAgent)) { location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(c.text); return; }   // Safari opens it in Calendar: tap Add All
+  give(c.name, c.text, 'text/calendar');
+  alertBox(T('日历文件有 ' + c.n + ' 个截止日。打开它、按「全部添加」；每个截止日前 7 天和前 2 天早上 9 点会提醒。','The calendar file has ' + c.n + ' due date(s). Open it and tap Add All: a reminder comes at 9:00, 7 days and 2 days before each.'));
+}
+// ================= 2026-11-24 (plan item 28 A): a new employee's own details =================
+// The employee fills them in; the SIN (optional) is locked with the accounting office's key (RSA-OAEP SHA-256, public
+// half built into this app): only the office's computer opens it -- not this phone, not the owner, not Drive or email.
+// The SIN is never kept on this device. The owner approves (and sets the pay), the approved file goes to the office.
+// No bank details are asked for: the owner pays the staff.
+var PROV = ['BC','AB','SK','MB','ON','QC','NB','NS','PE','NL','YT','NT','NU'];
+function luhn(s){ if (!/^\d{9}$/.test(s)) return false; var t = 0; for (var i = 0; i < 9; i++) { var d = +s[i] * (i % 2 ? 2 : 1); t += d > 9 ? d - 9 : d; } return t % 10 === 0; }
+function canLock(){ return !!(OFFICE_KEY && OFFICE_KEY.spki && window.crypto && crypto.subtle && window.isSecureContext !== false); }
+function lockSin(sin){
+  var der = Uint8Array.from(atob(OFFICE_KEY.spki), function(c){ return c.charCodeAt(0); });
+  return crypto.subtle.importKey('spki', der, {name: 'RSA-OAEP', hash: 'SHA-256'}, false, ['encrypt'])
+    .then(function(k){ return crypto.subtle.encrypt({name: 'RSA-OAEP'}, k, new TextEncoder().encode(sin)); })
+    .then(function(buf){ var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return {kid: OFFICE_KEY.kid, ct: btoa(s)}; });
+}
+function pv(id){ var x = document.getElementById(id); return x ? String(x.value || '').trim() : ''; }
+function vMe(){
+  var P = S.myProfile || {}, sent = S.profileSent;
+  var f = function(id, zh, en, v, extra){ return '<label>' + T(zh, en) + '<input id="' + id + '" value="' + esc(v || '') + '"' + (extra || '') + '></label>'; };
+  return '<div class="card"><h2>' + T('我的资料（新员工）','My details (new employee)') + '</h2>'
+    + '<p class="sm mut">' + T('填好后按最下面的按钮，做成一个文件交给老板；老板批准后交给会计。不收银行资料：工资怎么付，直接跟老板说。','Fill this in and tap the button at the bottom: it makes one file for the boss; the boss approves it and sends it to the accountant. No bank details here: tell the boss directly how you are paid.') + '</p>'
+    + (sent ? '<div class="warn">' + T('已经交过一次（' + esc(sent.at) + '）。改了再交 = 新的一份，老板会收到最新的。','Sent once already (' + esc(sent.at) + '). Change and send again = a new copy; the boss gets the latest.') + ' <button data-a="me-resend">' + T('再交一次同一份','Send the same file again') + '</button></div>' : '')
+    + '<div class="row">' + f('m-name', '法定全名（跟 SIN 卡一样）', 'Legal name (as on the SIN record)', P.name || S.me, ' style="min-width:220px"') + f('m-birth', '生日', 'Birth date', P.birth, ' type="date"') + '</div>'
+    + '<div class="row">' + f('m-street1', '地址', 'Street address', P.street1, ' style="min-width:220px"') + f('m-street2', '单位 / 楼层（可空）', 'Unit (optional)', P.street2) + '</div>'
+    + '<div class="row">' + f('m-city', '城市', 'City', P.city) + '<label>' + T('省','Province') + '<select id="m-province">' + PROV.map(function(p){ return '<option' + ((P.province || 'BC') === p ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></label>' + f('m-postal', '邮编', 'Postal code', P.postal, ' style="width:110px" autocapitalize="characters"') + '</div>'
+    + '<div class="row">' + f('m-phone1', '电话', 'Phone', P.phone1, ' type="tel"') + f('m-email', '电邮', 'Email', P.email, ' type="email" style="min-width:200px"') + '</div>'
+    + '<div class="card" style="background:var(--bg)"><h2>SIN</h2>'
+    + (canLock() ? '<label>' + T('社会保险号 SIN（9 位，可以不填）','Social Insurance Number (9 digits, you may leave it blank)') + '<input id="m-sin" inputmode="numeric" autocomplete="off" maxlength="11" placeholder="___ ___ ___" style="font-family:monospace"></label>'
+        + '<p class="sm mut">' + T('交出去的文件里 SIN 是加密的，只有会计事务所的电脑打得开；老板看不到，这台手机也不留。为了保密你也可以<b>不填</b>，直接打电话给会计告诉他。','In the file the SIN is locked: only the accounting office\'s computer can open it; the boss cannot see it and this phone does not keep it. For privacy you may also <b>leave it blank</b> and phone the accountant instead.') + '</p>'
+      : '<p class="warn">' + T('这台设备不能加密，所以这里不收 SIN：请打电话给会计告诉他（不要用短信或电邮发 SIN）。','This device cannot lock the SIN, so it is not taken here: please phone the accountant (never send a SIN by text or email).') + '</p>')
+    + '</div>'
+    + '<div class="card" style="background:var(--bg)"><h2>TD1</h2><p class="sm mut">' + T('照 CRA 的 TD1（联邦）和 TD1BC 表算好，填最后一行「申报总额」。只有基本个人免税额就不用填。','From the CRA TD1 (federal) and TD1BC forms, the last line "total claim amount". Basic personal amount only: leave it blank.') + '</p>'
+    + '<div class="row">' + f('m-td1fed', 'TD1 联邦申报总额 $', 'TD1 federal total claim $', P.td1_fed, ' inputmode="decimal" style="width:140px"') + f('m-td1bc', 'TD1BC 申报总额 $', 'TD1BC total claim $', P.td1_bc, ' inputmode="decimal" style="width:140px"') + '</div>'
+    + '<label style="flex-direction:row;align-items:center;gap:8px;color:var(--ink)"><input type="checkbox" id="m-td1ok"' + (P.td1_confirmed ? ' checked' : '') + '> ' + T('我确认：上面的 TD1 资料是真的、完整的（会记下确认的时间）','I confirm the TD1 amounts above are true and complete (the time is kept)') + '</label></div>'
+    + '<button class="pri" data-a="me-send" style="font-size:17px;padding:12px 16px">' + T('做成文件交给老板','Make the file for the boss') + '</button></div>';
+}
+function meSend(){
+  var P = {name: pv('m-name'), birth: pv('m-birth'), street1: pv('m-street1'), street2: pv('m-street2'), city: pv('m-city'), province: pv('m-province'),
+    postal: pv('m-postal').toUpperCase().replace(/\s+/g, ''), phone1: pv('m-phone1'), email: pv('m-email'), td1_fed: pv('m-td1fed').replace(/[$,\s]/g, ''), td1_bc: pv('m-td1bc').replace(/[$,\s]/g, '')};
+  var sin = pv('m-sin').replace(/\D/g, ''), ok = document.getElementById('m-td1ok') && document.getElementById('m-td1ok').checked;
+  if (!P.name) throw new Error(T('要填名字','your name, please'));
+  if (P.postal && !/^[A-Z]\d[A-Z]\d[A-Z]\d$/.test(P.postal)) throw new Error(T('邮编不对（像 V6B1A1）','the postal code is not right (like V6B1A1)'));
+  if (P.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(P.email)) throw new Error(T('电邮不对','the email is not right'));
+  ['td1_fed', 'td1_bc'].forEach(function(k){ if (P[k] && !(+P[k] >= 0)) throw new Error(T('TD1 金额要是数字','the TD1 amount must be a number')); });
+  if (sin && !luhn(sin)) throw new Error(T('SIN 不对（9 位，最后一位是检查码）：再看一下，或者留空、打电话给会计','the SIN is not right (9 digits with a check digit): check it, or leave it blank and phone the accountant'));
+  if ((P.td1_fed || P.td1_bc) && !ok) throw new Error(T('填了 TD1 就要勾「我确认」','tick "I confirm" for the TD1'));
+  P.td1_confirmed = ok ? nowStr() : '';
+  if (S.me && S.me !== P.name && S.rows.some(function(r){ return r.emp === S.me; })) throw new Error(T('名字跟工时上的「' + S.me + '」不一样：工时是用名字对的，请用同一个名字（或先问老板）','the name is not the "' + S.me + '" on your hours: hours are matched by name, so use the same one (or ask the boss)'));
+  S.me = P.name;
+  S.myProfile = Object.assign({}, P);                         // kept on this phone: everything except the SIN
+  var finish = function(enc){
+    var body = Object.assign({kind: 'profile', app_version: APP_VERSION, made_at: nowStr(), company: S.mySetup ? S.mySetup.company : '', sin_enc: enc || null,
+      sin_note: enc ? '' : T('员工没填，会打电话给会计','not filled in: the employee will phone the accountant')}, P);
+    var text = sealed(body), name = 'profile_' + P.name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') + '.json';
+    S.profileSent = {at: body.made_at, name: name, text: text}; save(); render(); give(name, text);
+  };
+  if (sin) { if (!canLock()) throw new Error(T('这台设备不能加密 SIN：请留空、打电话给会计','this device cannot lock the SIN: leave it blank and phone the accountant'));
+    lockSin(sin).then(finish).catch(function(e){ alertBox(T('SIN 加密没成功，文件没做：','The SIN could not be locked, no file made: ') + esc(e && e.message || e)); }); }
+  else finish(null);
+}
+// ----- the owner: approve (and set the pay) without seeing the SIN
+function profCards(){
+  var L = (S.profiles || []).filter(function(p){ return p.status === 'pending' || (p.status === 'approved' && p.approved && p.approved.at >= DBPay.addDays(today(), -30)); });
+  if (!L.length) return '';
+  return L.map(function(p){ var d = p.data, e = emp(d.name), i = S.profiles.indexOf(p);
+    var row = function(zh, en, v){ return v ? '<tr><td class="mut">' + T(zh, en) + '</td><td>' + esc(v) + '</td></tr>' : ''; };
+    var h = '<div class="card"><h2>' + esc(d.name) + ' <span class="pill ' + (p.status === 'pending' ? 'p' : 'a') + '">' + (p.status === 'pending' ? T('新员工资料 · 待批','new employee details · to approve') : T('已批准 ','approved ') + esc(p.approved.by) + ' ' + esc(p.approved.at)) + '</span></h2>'
+      + '<div class="tw"><table>' + row('生日','Birth date', d.birth) + row('地址','Address', [d.street1, d.street2, d.city, d.province, d.postal].filter(Boolean).join(', ')) + row('电话','Phone', d.phone1) + row('电邮','Email', d.email)
+      + '<tr><td class="mut">SIN</td><td>' + (d.sin_enc ? '🔒 ' + T('已加密：只有会计的电脑看得到','locked: only the accountant\'s computer can read it') : T('没填：员工会打电话给会计','not filled in: the employee will phone the accountant')) + '</td></tr>'
+      + '<tr><td class="mut">TD1</td><td>' + T('联邦 ','federal ') + (d.td1_fed ? '$' + money(d.td1_fed) : T('基本额','basic')) + ' · BC ' + (d.td1_bc ? '$' + money(d.td1_bc) : T('基本额','basic')) + (d.td1_confirmed ? ' · ' + T('员工确认 ','confirmed ') + esc(d.td1_confirmed) : '') + '</td></tr>'
+      + row('员工填的时间','Filled in', d.made_at) + '</table></div>';
+    if (p.status === 'approved') return h + '<button data-a="prof-resend" data-i="' + i + '">' + T('再交一次给会计','Send to the accountant again') + '</button></div>';
+    var pay = e ? {type: e.type, amt: e.type === 'sal' ? e.salary : e.rate, hired: e.hired} : {type: 'hr', amt: '', hired: today()};
+    return h + (e ? '<p class="sm mut">' + T('员工名单里已经有这个人：批准 = 更新资料，工资不变。','Already on the employee list: approving updates the details; the pay stays.') + '</p>' : '')
+      + '<div class="row"><label>' + T('工资','Pay') + '<select id="pp-type-' + i + '"' + (e ? ' disabled' : '') + '><option value="hr"' + (pay.type !== 'sal' ? ' selected' : '') + '>' + T('时薪','hourly') + '</option><option value="sal"' + (pay.type === 'sal' ? ' selected' : '') + '>' + T('年薪','salary / year') + '</option></select></label>'
+      + '<label>$<input id="pp-amt-' + i + '" inputmode="decimal" style="width:110px" value="' + esc(pay.amt || '') + '"' + (e ? ' disabled' : '') + '></label>'
+      + '<label>' + T('入职日','Hired') + '<input type="date" id="pp-hired-' + i + '" value="' + esc(pay.hired || '') + '"' + (e ? ' disabled' : '') + '></label></div>'
+      + '<button class="pri" data-a="prof-ok" data-i="' + i + '">' + T('批准，交给会计','Approve and send to the accountant') + '</button> <button data-a="prof-no" data-i="' + i + '">' + T('不批准','Do not approve') + '</button></div>';
+  }).join('');
+}
+function profFile(p){
+  var body = {kind: 'employee_profile', app_version: APP_VERSION, company: S.setup.company, profile: p.data, approved: p.approved, pay: p.pay, made_at: nowStr()};
+  give('employee_' + S.setup.company.replace(/[^A-Za-z0-9]+/g, '_') + '_' + p.data.name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') + '.json', sealed(body));
+}
+function profOk(i){
+  var p = S.profiles[i], d = p.data, e = emp(d.name), w = who(), at = nowStr();
+  if (!e) {
+    var ty = document.getElementById('pp-type-' + i).value, amt = Number(document.getElementById('pp-amt-' + i).value), hired = document.getElementById('pp-hired-' + i).value;
+    if (!(amt > 0)) throw new Error(T('先填工资（时薪或年薪）','set the pay first (hourly rate or salary)'));
+    p.pay = {type: ty, rate: ty === 'hr' ? amt : 0, salary: ty === 'sal' ? amt : 0, hired: hired};
+    S.setup.employees.push({name: d.name, type: ty, rate: p.pay.rate, salary: p.pay.salary, hired: hired, vacPct: 0.04, td1_fed: +d.td1_fed || 0, td1_bc: +d.td1_bc || 0, added_in_app: {at: at, by: w}});
+  } else {
+    p.pay = {type: e.type, rate: e.rate, salary: e.salary, hired: e.hired};
+    e.changes = e.changes || []; e.changes.push({at: at, by: w, td1_fed: e.td1_fed, td1_bc: e.td1_bc});
+    if (d.td1_fed !== '') e.td1_fed = +d.td1_fed || 0; if (d.td1_bc !== '') e.td1_bc = +d.td1_bc || 0;
+  }
+  p.status = 'approved'; p.approved = {by: w, at: at}; save(); render(); profFile(p);
 }
 function vNeedSetup(){
   return '<div class="card"><h2>' + T('先导入设置文件','First, import the setup file') + '</h2><p>' + T('会计事务所会给你一个 setup_公司名.json（员工、时薪、发薪频率）。','The accounting office gives you setup_<company>.json (employees, pay, how often you pay).') + '</p>'
@@ -684,7 +851,7 @@ function vHours(){
 function vInbox(){
   var pend = S.rows.filter(function(r){ return r.src === 'emp' && !r.approved; });
   var by = {}; pend.forEach(function(r){ (by[r.emp] = by[r.emp] || []).push(r); });
-  return '<div class="card"><h2>' + T('导入员工交来的工时文件','Import hours files from employees') + '</h2><button class="pri" data-a="import">' + T('选文件','Choose files') + '</button></div>'
+  return '<div class="card"><h2>' + T('导入员工交来的文件（工时 / 新员工资料）','Import files from employees (hours / new employee details)') + '</h2><button class="pri" data-a="import">' + T('选文件','Choose files') + '</button></div>' + profCards()
     + (Object.keys(by).length ? Object.keys(by).map(function(n){
       return '<div class="card"><h2>' + esc(n) + ' <span class="pill p">' + by[n].length + T(' 天待批',' to approve') + '</span></h2>' + (emp(n) ? '' : '<div class="bad">' + T('员工名单里没有这个名字：先在「员工」里加上，或者让员工改名字再交。','Not on the employees list: add them under Employees, or have them fix the name and send again.') + '</div>')
         + dayCards(by[n], 'boss') + '<button class="pri" data-a="approve-all" data-n="' + esc(n) + '"' + (emp(n) ? '' : ' disabled') + '>' + T('全部批准','Approve all') + '</button></div>';
@@ -963,6 +1130,16 @@ function importText(text, name){
     S.mySetup = o; S.role = 'emp'; S.me = o.employee.name; save(); tab = 'my'; render();
     return T('已导入：','Imported: ') + esc(o.employee.name) + ' · ' + esc(o.company) + T('。「我的工时」页现在会估算这一期的扣款和实发。',': the My hours screen now estimates this period\'s deductions and take-home pay.');
   }
+  if (o.kind === 'profile') {                                   // 2026-11-24 (plan 28 A): a new employee's own details (the SIN locked)
+    if (S.role !== 'boss') throw new Error(T('员工资料文件要在老板那边导入','employee details files are imported on the owner\'s device'));
+    if (!S.setup) throw new Error(T('先导入公司的设置文件','import the company setup file first'));
+    if (o.company && o.company !== S.setup.company) throw new Error(T('这个文件是 ' + o.company + ' 的，现在用的是 ' + S.setup.company,'this file is for ' + o.company + '; the app is on ' + S.setup.company));
+    var sh = sha256(text); S.profiles = S.profiles || [];
+    if (S.profiles.some(function(p){ return p.sha === sh; })) { tab = 'inbox'; render(); return T('这一份已经导入过了','this file is in already'); }
+    S.profiles.forEach(function(p){ if (p.status === 'pending' && p.data.name === o.name) p.status = 'replaced'; });   // the latest copy counts
+    S.profiles.push({sha: sh, received: nowStr(), status: 'pending', data: o}); save(); tab = 'inbox'; render();
+    return T('收到 ' + esc(o.name) + ' 的资料，在「员工交来的」批准。','Details from ' + esc(o.name) + ' are in: approve them under From employees.');
+  }
   if (o.kind === 'remit_status') {                              // 2026-11-21: from the office -- what the company owes CRA (totals only)
     if (S.role !== 'boss') throw new Error(T('源扣款状态文件要在老板那边导入','the source deductions file is imported on the owner\'s device'));
     if (S.setup && S.setup.company !== o.company) throw new Error(T('这个文件是 ' + o.company + ' 的，现在用的是 ' + S.setup.company + '（先在「备份 / 设置」换公司）','this file is for ' + o.company + '; the app is on ' + S.setup.company + ' (switch company in Backup / settings first)'));
@@ -1078,6 +1255,14 @@ document.addEventListener('click', function(ev){
         employee: Object.assign(JSON.parse(JSON.stringify(e7)), {vac: {year: t7.slice(0, 4), taken: vacBank(e7, t7).taken}}), ytd: {year: t7.slice(0, 4), gross: Y7.gross || 0, cpp: Y7.cpp || 0, cpp2: Y7.cpp2 || 0, ei: Y7.ei || 0}, ytd_through: thr7 || ''};
       give('my_' + e7.name.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') + '.json', sealed(o7), 'application/json'); }
     else if (a === 'import') pick('.json,application/json', function(text, name){ try { alertBox(importText(text, name)); } catch (e) { alertBox(esc(name) + ': ' + esc(e.message)); } });
+    else if (a === 'me-send') meSend();
+    else if (a === 'me-resend') give(S.profileSent.name, S.profileSent.text);
+    else if (a === 'go-inbox') { tab = 'inbox'; render(); }
+    else if (a === 'prof-ok') profOk(+b.getAttribute('data-i'));
+    else if (a === 'prof-no') { var pn = S.profiles[+b.getAttribute('data-i')]; pn.status = 'rejected'; pn.rejected = {by: who(), at: nowStr()}; save(); render(); }
+    else if (a === 'prof-resend') profFile(S.profiles[+b.getAttribute('data-i')]);
+    else if (a === 'remit-cal') remitCal(false);
+    else if (a === 'remit-cal-share') remitCal(true);
     else if (a === 'calc') calc();
     else if (a === 'post') post();
     else if (a === 'slips') payslips(b.getAttribute('data-no'));
