@@ -199,7 +199,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
     if (e <= s) e += 24 * 60;
     return Math.max(0, e - s - parseInt(r['break'] || 0, 10));
   }
-  function timesheet(rows, frm, to, weekStart) {
+  function timesheet(rows, frm, to, weekStart, noOt) {   // noOt (2026-11-25): overtime does not apply (a manager) -- every hour straight time
     weekStart = weekStart === undefined ? 6 : weekStart;
     var days = {};
     rows.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : mins(a.start) - mins(b.start); })
@@ -218,7 +218,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
         var m = rowMinutes(r), rate = f(r.rate);
         [[0, 480, 'reg'], [480, 720, 'ot'], [720, 1000000, 'dt']].forEach(function (b) {
           var part = Math.max(0, Math.min(done + m, b[1]) - Math.max(done, b[0]));
-          if (part) sl.push([part, rate, stat ? 'stat' : b[2]]);
+          if (part) sl.push([part, rate, stat ? 'stat' : (noOt ? 'reg' : b[2])]);
         });
         done += m;
       });
@@ -238,7 +238,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
           }
         }
       }
-      if (!stat) {
+      if (!stat && !noOt) {
         sl.slice().forEach(function (s_) {
           if (s_[2] !== 'reg') return;
           var over = Math.max(0, weekReg + s_[0] - 2400);
@@ -281,7 +281,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 </script>
 <script>
 var TABLES = {"editions": [{"edition": "T4032BC Jan 2026", "effective": "2026-01-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-jan/t4032bc-january-general-information.html", "added": "2026-10-25 from CRA T4032-BC(E) Rev. 26, January 2026 (read 2026-10-25)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0506, 0], [50363, 0.077, 1330], [100728, 0.105, 4150], [115648, 0.1229, 6220], [140430, 0.147, 9604], [190405, 0.168, 13603], [265545, 0.205, 23428]], "tcp": 13216, "bLow": 0.0506, "bcRedMax": 575, "bcRedLo": 25570, "bcRedHi": 41722, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}, {"edition": "T4032BC Jul 2026", "effective": "2026-07-01", "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032bc-july/t4032bc-july-general-information.html", "added": "2026-10-25 (the DropBookAI v48 numbers = CRA T4032BC July 2026 / T4127 123rd edition; BC lowest rate prorated 6.14%, BC reduction prorated 805 -- proposed changes, per CRA)", "PD": {"cppR": 0.0595, "cppEx": 3500, "cppMax": 4230.45, "ympe": 74600, "cppBaseR": 0.0495, "cppBaseMax": 3519.45, "eiR": 0.0163, "eiMax": 1123.07, "eiEr": 1.4, "fed": [[0, 0.14, 0], [58523, 0.205, 3804], [117045, 0.26, 10241], [181440, 0.29, 15685], [258482, 0.33, 26024]], "bpaf": 16452, "cea": 1501, "fLow": 0.14, "bc": [[0, 0.0614, 0], [50363, 0.077, 786], [100728, 0.105, 3606], [115648, 0.1229, 5676], [140430, 0.147, 9061], [190405, 0.168, 13059], [265545, 0.205, 22884]], "tcp": 13216, "bLow": 0.0614, "bcRedMax": 805, "bcRedLo": 25570, "bcRedHi": 44952, "bcRedR": 0.0356, "yampe": 85000, "cpp2R": 0.04, "cpp2Max": 416.0, "bpafMin": 14829, "bpafLo": 181440, "bpafHi": 258482}}, {"edition": "T4032BC Jan 2027", "effective": "2027-01-01", "PD": {"cppR": 0.0575, "cppEx": 3500.0, "cppMax": 4209.0, "ympe": 76700.0, "cppBaseR": 0.0475, "cppBaseMax": 3477.0, "eiR": 0.0164, "eiMax": 1161.12, "eiEr": 1.4, "fed": [[0.0, 0.14, 0.0], [60044.0, 0.205, 3903.0], [120088.0, 0.26, 10508.0], [186157.0, 0.29, 16092.0], [265203.0, 0.33, 26701.0]], "bpaf": 16879.0, "cea": 1540.0, "fLow": 0.14, "bc": [[0.0, 0.056, 0.0], [50363.0, 0.077, 1058.0], [100728.0, 0.105, 3878.0], [115648.0, 0.1229, 5948.0], [140430.0, 0.147, 9332.0], [190405.0, 0.168, 13331.0], [265545.0, 0.205, 23156.0]], "tcp": 13216.0, "bLow": 0.056, "bcRedMax": 690.0, "bcRedLo": 25570.0, "bcRedHi": 41722.0, "bcRedR": 0.0356, "yampe": 87400.0, "cpp2R": 0.04, "cpp2Max": 428.0, "bpafMin": 15214.0, "bpafLo": 186157.0, "bpafHi": 265203.0}, "url": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4127-payroll-deductions-formulas/t4127-jan.html", "added": "2026-11-21 08:36 by joseph (read from CRA by the Update button, files kept in C:\\Users\\User\\Downloads\\Bank Push Bookkeeping\\engine\\cra_t4127\\2027-01-01)"}]};
-var APP_VERSION = '2026-11-25 / T4032BC Jan 2027';
+var APP_VERSION = '2026-11-26 / T4032BC Jan 2027';
 var FIRM = 'Joseph Zhu, CPA, CGA';
 var OFFICE_KEY = {"spki": "MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAi2ZxbVIoDE8n+88TZ31pPGitvj3D0IjCLwguf+ig957kaXvfbkmCy59Htfd5JBn7QcnJ6+CvmPrNT0apI3lbdRUpzoL6sPVzgMh+mVRThYzWdt0WpgF8Olv51yVwvhRtlhMqk7+6jy5QB3UTz6gOJoVfTCnWHggw/qQ3E28jXVUDoDexdH4ohFHhHh85Wu5HXrQrOA+oGgHDLUZfqZT6iLGBkuTiTkd3WLGXW9H9+mJmT4Kpo1TkeZcd1nJ5z8Zob8tNoYTDH86uN+CoXwbmC47FdC1oQmfTgw7yVxhhoUdvPul3UedbbugP89mNO/qhUduA1svuQmjVLeMgjM9j4Chujv4DMj6SR3TXBctMNqphTNNy6VsuEHgB/AGZmiBLGbhC5Fn/vdYX4xVYSxmcx6HSaWE2DxMYuQCsrbigQisbIB24SpygtqCZOEYBtgoVg8FH0bodweZFMABoFTIuLlJUOwU/BJkT6erI1lAzL0rnJsspNicWyHg51dVrE2TtAgMBAAE=", "kid": "fd56186492d00825"};               // 2026-11-24: the accounting office's public key (a SIN is locked with it)
 (function(){
@@ -606,9 +606,13 @@ function remitIcs(){
 }
 function remitCal(share){
   var c = remitIcs();
-  if (!share && /iPhone|iPad|iPod/.test(navigator.userAgent)) { location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(c.text); return; }   // Safari opens it in Calendar: tap Add All
-  give(c.name, c.text, 'text/calendar');
-  alertBox(T('日历文件有 ' + c.n + ' 个截止日。打开它、按「全部添加」；每个截止日前 7 天和前 2 天早上 9 点会提醒。','The calendar file has ' + c.n + ' due date(s). Open it and tap Add All: a reminder comes at 9:00, 7 days and 2 days before each.'));
+  // in Safari itself the calendar opens straight away; the home-screen app (user's iPhone 2026-11-25) does nothing with
+  // that, so there the file goes through the share sheet: Save to Files, then open it in Files -> Add All
+  var standalone = window.navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  if (!share && !standalone && /iPhone|iPad|iPod/.test(navigator.userAgent)) { location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(c.text); return; }
+  alertBox(T('日历文件有 ' + c.n + ' 个截止日。按「好」后会出现分享：选「<b>存储到文件</b>」→ 打开「文件」App → 点这个 .ics 文件 → 按「<b>全部添加</b>」。每个截止日前 7 天和前 2 天早上 9 点会提醒。',
+    'The calendar file has ' + c.n + ' due date(s). After OK the share sheet opens: choose <b>Save to Files</b> → open the Files app → tap the .ics file → tap <b>Add All</b>. A reminder comes at 9:00, 7 days and 2 days before each.'));
+  var ok = document.querySelector('#dlgf button.pri'); if (ok) ok.onclick = function(){ give(c.name, c.text, 'text/calendar'); };   // the share sheet needs this tap
 }
 // ================= 2026-11-24 (plan item 28 A): a new employee's own details =================
 // The employee fills them in; the SIN (optional) is locked with the accounting office's key (RSA-OAEP SHA-256, public
@@ -818,7 +822,7 @@ function myEst(M, rows, from, to){
   var e = M.employee, ws = M.week_start === undefined ? 6 : M.week_start, inputs = {}, statDate = '';
   rows.forEach(function(r){ if (r.stat && r.date >= from && r.date <= to && !statDate) statDate = r.date; });
   if (e.type === 'sal') inputs[e.name] = {bonus: ''};
-  else { var ts = DBPay.timesheet(rows.map(function(r){ return calcRow(Object.assign({}, r, {rate: r.rate || e.rate})); }), from, to, ws);
+  else { var ts = DBPay.timesheet(rows.map(function(r){ return calcRow(Object.assign({}, r, {rate: r.rate || e.rate})); }), from, to, ws, !!e.no_ot);
     inputs[e.name] = {reg: ts.reg, ot: ts.ot, dt: ts.dt, stat: ts.stat, bonus: ts.bonus || '', pay: ts.pay}; }
   var y = to.slice(0, 4), Y = M.ytd && M.ytd.year === y ? M.ytd : {}, ytd = {};
   ytd[e.name] = {gross: +Y.gross || 0, cpp: +Y.cpp || 0, cpp2: +Y.cpp2 || 0, ei: +Y.ei || 0};
@@ -959,7 +963,7 @@ function vRuns(){
   var rs = S.runs.slice().reverse();
   return '<div class="card"><h2>' + T('已发的工资','Pay runs') + '</h2>' + (rs.length ? '<div class="tw"><table><tr><th>No.</th><th>' + T('工资期','Period') + '</th><th>' + T('发薪日','Paid') + '</th><th class="n">' + T('总额','Gross') + '</th><th class="n">' + T('实发','Net') + '</th><th class="n">PD7A</th><th></th></tr>'
     + rs.map(function(R){ return '<tr' + (R.voided ? ' style="opacity:.5"' : '') + '><td>' + esc(R.no) + '</td><td>' + esc(R.period_from) + ' – ' + esc(R.period_to) + '</td><td>' + esc(R.pay_date) + '</td><td class="n">' + money(R.result.gross) + '</td><td class="n">' + money(R.result.net) + '</td><td class="n">' + money(R.result.remit) + '<div class="sm mut">' + T('截止 ','due ') + esc(R.remit_due) + '</div></td><td>'
-      + (R.voided ? T('已作废','voided') : '<button data-a="slips" data-no="' + esc(R.no) + '">' + T('工资单','Payslips') + '</button> <button data-a="export-run" data-no="' + esc(R.no) + '">' + T('导出','Export') + '</button>' + (R.exported ? '' : ' <button data-a="void" data-no="' + esc(R.no) + '">' + T('作废','Void') + '</button>')) + '</td></tr>'; }).join('') + '</table></div>' : '<p class="mut">' + T('还没有','none yet') + '</p>')
+      + (R.voided ? T('已作废','voided') : '<button data-a="slips" data-no="' + esc(R.no) + '">' + T('工资单','Payslips') + '</button> <button data-a="export-run" data-no="' + esc(R.no) + '">' + T('导出','Export') + '</button>' + ' <button data-a="void" data-no="' + esc(R.no) + '">' + T('作废','Void') + '</button>')   /* 2026-11-26: also after it was sent (asks first) */ + '</td></tr>'; }).join('') + '</table></div>' : '<p class="mut">' + T('还没有','none yet') + '</p>')
     + '<p class="mut sm">' + T('T4 由会计事务所做；这里的数字（每人全年总额、CPP、EI、税）只供核对。','The T4s are done by the accounting office; the year\'s totals here are for checking only.') + '</p>' + ytdTable() + '</div>';
 }
 function ytdTable(){
@@ -1234,7 +1238,7 @@ function calc(){
     if (pend.length) flags.push({bad:true, block:true, text: e.name + ': ' + pend.length + T(' 天工时还没批准',' shift(s) not approved yet')});
     var ov = inPer.filter(function(r){ return clashOf(r, e.name, r.id); });
     if (ov.length) flags.push({bad:true, block:true, text: e.name + ': ' + ov.length + T(' 条工时时间互相重叠（' + ov.map(function(r){ return r.date + ' ' + r.start; }).join(', ') + '）：先到「工时」改日期或删掉重复的',' shifts overlap each other (' + ov.map(function(r){ return r.date + ' ' + r.start; }).join(', ') + '): fix the dates or delete the repeats under Hours first')});
-    var ts = DBPay.timesheet(rows.map(calcRow), from, to, (S.setup.week_start === undefined ? 6 : S.setup.week_start));
+    var ts = DBPay.timesheet(rows.map(calcRow), from, to, (S.setup.week_start === undefined ? 6 : S.setup.week_start), !!e.no_ot);   // no_ot: overtime does not apply (2026-11-25)
     ts.days.forEach(function(d){ if (d.flag) flags.push({bad: d.flag.indexOf('LESS') >= 0, text: e.name + ' ' + d.date + ': ' + (d.flag.indexOf('LESS') >= 0 ? T('手填的加班少于 BC 规定（照 BC 规定算）','the overtime typed in is less than BC requires (paid as BC requires)') : T('手填的加班多于 BC 规定（照手填的付）','the overtime typed in is more than BC requires (paid as typed)'))}); });
     inPer.forEach(function(r){ if (r.stat && !statDate) statDate = r.date; });
     inputs[e.name] = {reg: ts.reg, ot: ts.ot, dt: ts.dt, stat: ts.stat, bonus: ts.bonus || '', pay: ts.pay, vac: vd};
@@ -1339,7 +1343,14 @@ document.addEventListener('click', function(ev){
     else if (a === 'post') post();
     else if (a === 'slips') payslips(b.getAttribute('data-no'));
     else if (a === 'export-run') exportRun(b.getAttribute('data-no'));
-    else if (a === 'void') { var R = runByNo(b.getAttribute('data-no')); R.voided = nowStr(); R.voided_by = who(); save(); render(); }
+    else if (a === 'void') { var R = runByNo(b.getAttribute('data-no'));
+      // 2026-11-26 (user, SFU: a test run was sent to the office and could not be voided): a sent run can be voided too --
+      // ask first: the office already has the file, so pay this period again and send the new file (the office books the newest one only)
+      var q = R.exported ? T('这一期 ' + R.no + ' 已经导出给会计（' + R.exported + '）。作废后要重新发这一期，再导出一次给会计（会计那边只记最新那份）。确定作废？',
+                             'Pay run ' + R.no + ' was already sent to the accountant (' + R.exported + '). After voiding it, pay this period again and send the new file (the office books only the newest one). Void it?')
+                         : T('作废这一期 ' + R.no + '？', 'Void pay run ' + R.no + '?');
+      if (!window.confirm(q)) return;
+      R.voided = nowStr(); R.voided_by = who(); save(); render(); }
     else if (a === 'st-save') { var i = +b.getAttribute('data-i'), e = emps()[i], pv = document.querySelector('.st-pay[data-i="' + i + '"]').value, lv = document.querySelector('.st-left[data-i="' + i + '"]').value;
       e.changes = e.changes || []; e.changes.push({at: nowStr(), by: who(), rate: e.rate, salary: e.salary, left: e.left || ''});
       if (e.type === 'sal') e.salary = Number(pv); else e.rate = Number(pv); e.left = lv; save(); render(); }
